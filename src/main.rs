@@ -44,6 +44,8 @@ async fn main() -> Result<()> {
     let url = std::env::var("DATABASE_URL").expect("missing DATABASE_URL env");
     let pool = PgPool::connect(&url).await?;
 
+    sqlx::migrate!("./db/migrations").run(&pool).await?;
+
     let res = sqlx::query("SELECT 1 + 1 AS SUM").fetch_one(&pool).await?;
     let sum: i32 = res.get("sum");
 
