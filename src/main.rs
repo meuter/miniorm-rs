@@ -67,11 +67,27 @@ async fn main() -> Result<()> {
         exchange_rate: dec!(0.9),
     };
 
-    sqlx::query(r"INSERT INTO transaction (date, operation) VALUES ($1, $2)")
-        .bind(tx.date)
-        .bind(tx.operation)
-        .execute(&pool)
-        .await?;
+    sqlx::query(
+        r#"
+        INSERT INTO transaction (
+            date,
+            operation,
+            quantity,
+            unit_price,
+            taxes,
+            fees,
+            currency
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7)"#,
+    )
+    .bind(tx.date)
+    .bind(tx.operation)
+    .bind(tx.quantity)
+    .bind(tx.unit_price)
+    .bind(tx.taxes)
+    .bind(tx.fees)
+    .bind(tx.currency.code())
+    .execute(&pool)
+    .await?;
 
     Ok(())
 }
