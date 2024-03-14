@@ -1,7 +1,9 @@
 use dotenv::dotenv;
 use iso_currency::Currency;
 use rust_decimal::Decimal;
-use sqlx::{types::chrono::NaiveDate, PgPool, Row};
+use rust_decimal_macros::dec;
+use serde::{Deserialize, Serialize};
+use sqlx::{types::chrono::NaiveDate, PgPool};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
@@ -17,6 +19,8 @@ pub enum Instrument {
     Stock(Stock),
 }
 
+#[derive(Clone, Debug, PartialEq, PartialOrd, sqlx::Type, Deserialize, Serialize)]
+#[sqlx(type_name = "operation", rename_all = "lowercase")]
 pub enum Operation {
     Buy,
     Sell,
@@ -46,9 +50,28 @@ async fn main() -> Result<()> {
 
     sqlx::migrate!("./db/migrations").run(&pool).await?;
 
-    let res = sqlx::query("SELECT 1 + 1 AS SUM").fetch_one(&pool).await?;
-    let sum: i32 = res.get("sum");
+    let aapl = Stock {
+        ticker: Ticker("AAPL".into()),
+        currency: Currency::USD,
+    };
 
-    println!("Hello, world! {sum}");
+    let tx = Transaction {
+        date: NaiveDate::from_ymd_opt(2024, 3, 15).unwrap(),
+        operation: Operation::Buy,
+        instrment: Instrument::Stock(aapl),
+        quantity: dec!(10.0),
+        unit_price: dec!(170.0),
+        taxes: dec!(10.2),
+        fees: dec!(5.5),
+        currency: Currency::USD,
+        exchange_rate: dec!(0.9),
+    };
+
+    sqlx::query(r"INSERT INTO transaction (date, operation) VALUES ($1, $2)")
+        .bind(tx.date)
+        .bind(tx.operation)
+        .execute(&pool)
+        .await?;
+
     Ok(())
 }

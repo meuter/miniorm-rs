@@ -3,6 +3,7 @@ version: "3"
 services:
   db:
     env_file: ../.env
+    container_name: sqweal-db
     image: postgres:latest
     restart: unless-stopped
     ports:
