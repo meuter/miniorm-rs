@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+async-trait = "0.1.77"
 dotenv = "0.15.0"
 iso_currency = { version = "0.4.4", features = ["serde"] }
 oxydized-money = "0.3.0"
