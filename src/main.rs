@@ -5,23 +5,21 @@ use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
 use serde::{Deserialize, Serialize};
 use sqlx::{
-    prelude::FromRow,
-    types::chrono::{NaiveDate, NaiveTime},
-    PgPool, Pool, Postgres,
+    postgres::PgRow, prelude::FromRow, types::chrono::NaiveDate, PgPool, Pool, Postgres, Row,
 };
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub struct Ticker(pub String);
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub struct Stock {
     pub ticker: Ticker,
     pub currency: Currency,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub enum Instrument {
     Cash(Currency),
     Stock(Stock),
@@ -37,18 +35,33 @@ pub enum Operation {
     Withdrawal,
 }
 
-#[derive(Clone, Debug, FromRow, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Transaction {
     pub date: NaiveDate,
     pub operation: Operation,
-    // TODO
-    // pub instrment: Instrument,
+    pub instrument: Instrument,
     pub quantity: Decimal,
     pub unit_price: Decimal,
     pub taxes: Decimal,
     pub fees: Decimal,
-    // pub currency: Currency,
+    pub currency: Currency,
     pub exchange_rate: Decimal,
+}
+
+impl FromRow<'_, PgRow> for Transaction {
+    fn from_row(row: &PgRow) -> sqlx::Result<Self> {
+        Ok(Transaction {
+            date: row.try_get("date")?,
+            operation: row.try_get("operation")?,
+            instrument: serde_json::from_str(row.try_get("instrument")?).unwrap(),
+            quantity: row.try_get("quantity")?,
+            unit_price: row.try_get("unit_price")?,
+            taxes: row.try_get("taxes")?,
+            fees: row.try_get("fees")?,
+            currency: Currency::from_code(row.try_get("currency")?).unwrap(),
+            exchange_rate: row.try_get("exchange_rate")?,
+        })
+    }
 }
 
 pub struct TransactionRepository;
@@ -99,10 +112,12 @@ impl Repository<Transaction> for TransactionRepository {
                 id              BIGSERIAL PRIMARY KEY,
                 date            DATE NOT NULL,
                 operation       operation NOT NULL,
+                instrument      VARCHAR(50) NOT NULL,
                 quantity        DECIMAL NOT NULL,
                 unit_price      DECIMAL NOT NULL,
                 taxes           DECIMAL NOT NULL,
                 fees            DECIMAL NOT NULL,
+                currency        VARCHAR(3) NOT NULL,
                 exchange_rate   DECIMAL NOT NULL
             )
         "#,
@@ -128,22 +143,26 @@ impl Repository<Transaction> for TransactionRepository {
                 INSERT INTO transaction (
                     date,
                     operation,
+                    instrument,
                     quantity,
                     unit_price,
                     taxes,
                     fees,
+                    currency,
                     exchange_rate
                 )
-                VALUES ($1,$2,$3,$4,$5,$6,$7)
+                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
                 RETURNING id
             "#,
         )
         .bind(tx.date)
         .bind(tx.operation)
+        .bind(serde_json::to_string(&tx.instrument).unwrap())
         .bind(tx.quantity)
         .bind(tx.unit_price)
         .bind(tx.taxes)
         .bind(tx.fees)
+        .bind(tx.currency.code())
         .bind(tx.exchange_rate)
         .fetch_one(db)
         .await?;
@@ -157,9 +176,11 @@ impl Repository<Transaction> for TransactionRepository {
                     date,
                     operation,
                     quantity,
+                    instrument,
                     unit_price,
                     taxes,
                     fees,
+                    currency,
                     exchange_rate
                 FROM
                     transaction
@@ -199,12 +220,12 @@ async fn main() -> Result<()> {
     let tx = Transaction {
         date: NaiveDate::from_ymd_opt(2024, 3, 15).unwrap(),
         operation: Operation::Buy,
-        // instrment: Instrument::Stock(aapl),
+        instrument: Instrument::Stock(aapl),
         quantity: dec!(10),
         unit_price: dec!(170.0),
         taxes: dec!(10.2),
         fees: dec!(5.5),
-        // currency: Currency::USD,
+        currency: Currency::USD,
         exchange_rate: dec!(0.9),
     };
 
