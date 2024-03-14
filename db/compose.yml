@@ -1,0 +1,13 @@
+version: "3"
+
+services:
+  db:
+    env_file: ../.env
+    image: postgres:latest
+    restart: unless-stopped
+    ports:
+      - 5432:5432
+
+
+
+
