@@ -786,6 +786,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "miniorm-example-todo"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "dotenv",
+ "miniorm",
+ "miniorm-macros",
+ "sqlx",
+ "tokio",
+]
+
+[[package]]
 name = "miniorm-macros"
 version = "0.1.0"
 dependencies = [
@@ -1323,18 +1335,6 @@ name = "simdutf8"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f27f6278552951f1f2b8cf9da965d10969b2efdea95a6ec47987ab46edfe263a"
-
-[[package]]
-name = "simple"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "dotenv",
- "miniorm",
- "miniorm-macros",
- "sqlx",
- "tokio",
-]
 
 [[package]]
 name = "slab"
