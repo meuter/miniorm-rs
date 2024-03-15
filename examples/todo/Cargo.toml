@@ -2,6 +2,13 @@
 name = "miniorm-example-todo"
 version = "0.1.0"
 edition = "2021"
+authors = ["Cédric Meuter <cedric.meuter@gmail.com>"]
+description = "a *very* simple ORM built on top of sqlx"
+readme = "../../README.md"
+license = "MIT"
+keywords = ["sqlx", "orm"]
+homepage = "https://github.com/meuter/miniorm-rs"
+repository = "https://github.com/meuter/miniorm-rs"
 
 [dependencies]
 sqlx = { version = "0.7.4", features = ["runtime-tokio", "chrono"] }
