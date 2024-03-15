@@ -5,6 +5,11 @@
 [![Clippy](https://github.com/meuter/miniorm/actions/workflows/clippy.yml/badge.svg)](https://github.com/meuter/miniorm/actions/workflows/clippy.yml)
 [![Doc](https://github.com/meuter/miniorm/actions/workflows/docs.yml/badge.svg)](https://github.com/meuter/miniorm/actions/workflows/docs.yml)
 
+[![Crates.io](https://img.shields.io/crates/v/miniorm)](https://crates.io/crates/miniorm)
+[![Docs.rs](https://docs.rs/miniorm/badge.svg)](https://docs.rs/miniorm)
+[![Crates.io](https://img.shields.io/crates/d/miniorm)](https://crates.io/crates/miniorm)
+[![Crates.io](https://img.shields.io/crates/l/miniorm)](https://github.com/meuter/miniorm-rs/blob/main/LICENSE)
+
 The `miniorm` crate provides a *very* simple
 [ORM](https://en.wikipedia.org/wiki/Object%E2%80%93relational_mapping)
 on top of [`sqlx`](https://docs.rs/sqlx/latest/sqlx/).
