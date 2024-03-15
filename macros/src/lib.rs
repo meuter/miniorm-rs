@@ -1,8 +1,10 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse, DeriveInput, Meta, MetaList};
+use syn::{DeriveInput, Meta, MetaList};
 
-fn generate_has_table(input: DeriveInput) -> TokenStream {
+#[proc_macro_derive(Schema, attributes(column))]
+pub fn derive_schema(input: TokenStream) -> TokenStream {
+    let input: DeriveInput = syn::parse(input).unwrap();
     let ident = input.ident;
     let table_name = ident.to_string().to_lowercase();
 
@@ -12,13 +14,13 @@ fn generate_has_table(input: DeriveInput) -> TokenStream {
         syn::Data::Union(_) => panic!("only structs are supported"),
     };
 
-    let table_entries = fields.into_iter().map(|field| {
-        let field_ident = field.ident.unwrap();
+    let columns = fields.iter().map(|field| {
+        let field_ident = field.ident.as_ref().unwrap();
         let field_str = field_ident.to_string();
 
         let col_type = field
             .attrs
-            .into_iter()
+            .iter()
             .filter_map(|attr| {
                 if let Meta::List(meta_list) = &attr.meta {
                     let MetaList { path, tokens, .. } = meta_list;
@@ -41,31 +43,11 @@ fn generate_has_table(input: DeriveInput) -> TokenStream {
         }
     });
 
-    quote! {
-        impl ::miniorm::traits::Schema for #ident {
-            const TABLE_NAME: &'static str = #table_name;
-            const COLUMNS: &'static [(&'static str, &'static str)] = &[
-                #(#table_entries)*
-            ];
-        }
-    }
-    .into()
-}
-
-fn generate_bind(input: DeriveInput) -> TokenStream {
-    let ident = input.ident;
-
-    let fields = match input.data {
-        syn::Data::Struct(data) => data.fields,
-        syn::Data::Enum(_) => panic!("only structs are supported"),
-        syn::Data::Union(_) => panic!("only structs are supported"),
-    };
-
-    let match_arms = fields.into_iter().map(|field| {
-        let field_ident = field.ident.unwrap();
+    let bind_match_arms = fields.iter().map(|field| {
+        let field_ident = field.ident.as_ref().unwrap();
         let field_str = field_ident.to_string();
 
-        let is_sqlx_json = field.attrs.into_iter().any(|attr| {
+        let is_sqlx_json = field.attrs.iter().any(|attr| {
             if let Meta::List(meta_list) = &attr.meta {
                 let MetaList { path, tokens, .. } = meta_list;
                 let is_sqlx = path.segments.iter().any(|seg| seg.ident == "sqlx");
@@ -88,29 +70,25 @@ fn generate_bind(input: DeriveInput) -> TokenStream {
     });
 
     quote! {
-        impl ::miniorm::traits::ToRow for #ident {
+        impl ::miniorm::traits::Schema for #ident {
+
+            const TABLE_NAME: &'static str = #table_name;
+
+            const COLUMNS: &'static [(&'static str, &'static str)] = &[
+                #(#columns)*
+            ];
+
             fn bind<'q, O>(
                 &self,
                 query: ::miniorm::traits::Query<'q, O>,
                 column_name: &'static str
             ) -> ::miniorm::traits::Query<'q, O> {
                 match column_name {
-                    #(#match_arms)*
+                    #(#bind_match_arms)*
                     _ => query,
                 }
             }
-
         }
     }
     .into()
-}
-
-#[proc_macro_derive(ToRow)]
-pub fn derive_bind(input: TokenStream) -> TokenStream {
-    generate_bind(parse(input).unwrap())
-}
-
-#[proc_macro_derive(Schema, attributes(column))]
-pub fn derive_has_table(input: TokenStream) -> TokenStream {
-    generate_has_table(parse(input).unwrap())
 }

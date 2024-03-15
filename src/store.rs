@@ -69,7 +69,7 @@ where
 
 impl<'d, E> CrudStore<'d, E>
 where
-    E: for<'r> FromRow<'r, PgRow> + traits::ToRow + traits::Schema,
+    E: for<'r> FromRow<'r, PgRow> + traits::Schema,
 {
     pub async fn create(&self, entity: &E) -> sqlx::Result<i64> {
         let sql = E::insert();

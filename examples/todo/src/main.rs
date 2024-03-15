@@ -1,4 +1,4 @@
-#[derive(Debug, Clone, Eq, PartialEq, sqlx::FromRow, miniorm::Schema, miniorm::ToRow)]
+#[derive(Debug, Clone, Eq, PartialEq, sqlx::FromRow, miniorm::Schema)]
 struct Todo {
     #[column(TEXT NOT NULL)]
     description: String,

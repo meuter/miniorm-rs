@@ -4,13 +4,11 @@ use sqlx::{query::QueryAs, Postgres};
 
 pub type Query<'q, O> = QueryAs<'q, Postgres, O, <Postgres as HasArguments<'q>>::Arguments>;
 
-pub trait ToRow {
-    fn bind<'q, O>(&self, query: Query<'q, O>, column_name: &'static str) -> Query<'q, O>;
-}
-
 pub trait Schema {
     const TABLE_NAME: &'static str;
     const COLUMNS: &'static [(&'static str, &'static str)];
+
+    fn bind<'q, O>(&self, query: Query<'q, O>, column_name: &'static str) -> Query<'q, O>;
 
     fn comma_seperated_columns() -> String {
         Self::COLUMNS.iter().map(|col| col.0).join(", ")

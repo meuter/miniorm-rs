@@ -29,7 +29,7 @@ pub enum Operation {
     Withdrawal,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, sqlx::FromRow, miniorm::ToRow, miniorm::Schema)]
+#[derive(Clone, Debug, Eq, PartialEq, sqlx::FromRow, miniorm::Schema)]
 pub struct Transaction {
     #[column(DATE NOT NULL)]
     pub date: NaiveDate,
