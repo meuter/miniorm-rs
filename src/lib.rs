@@ -45,8 +45,8 @@
 //! ```
 //!
 //! For more complete examples, see:
-//! - [todo example](examples/todo/src/main.rs) for a simple example.
-//! - [stock transaction example](examples/transactions/src/main.rs)
+//! - [todo example](../src/miniorm_example_todo/main.rs.html) for a simple example.
+//! - [stock transaction example](../src/miniorm_example_transactions/main.rs.html)
 //!   for a more complex example, where certain fields are stored as
 //!   [`JSONB`](https://www.postgresql.org/docs/current/datatype-json.html) column
 //!   using [`serde_json`].
