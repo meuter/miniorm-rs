@@ -1,207 +1,21 @@
-use async_trait::async_trait;
+mod miniorm;
+mod model;
+mod store;
+
 use dotenv::dotenv;
 use iso_currency::Currency;
+use model::Transaction;
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
-use serde::{Deserialize, Serialize};
-use sqlx::{
-    postgres::PgRow, prelude::FromRow, types::chrono::NaiveDate, PgPool, Pool, Postgres, Row,
+use sqlx::{types::chrono::NaiveDate, PgPool};
+
+use crate::{
+    miniorm::Table,
+    model::{Instrument, Operation, Stock, Ticker},
+    store::TransactionTable,
 };
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
-
-#[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
-pub struct Ticker(pub String);
-
-#[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
-pub struct Stock {
-    pub ticker: Ticker,
-    pub currency: Currency,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
-pub enum Instrument {
-    Cash(Currency),
-    Stock(Stock),
-}
-
-#[derive(Copy, Clone, Debug, sqlx::Type, Eq, PartialEq)]
-#[sqlx(type_name = "operation", rename_all = "lowercase")]
-pub enum Operation {
-    Buy,
-    Sell,
-    Dividend,
-    Deposit,
-    Withdrawal,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Transaction {
-    pub date: NaiveDate,
-    pub operation: Operation,
-    pub instrument: Instrument,
-    pub quantity: Decimal,
-    pub unit_price: Decimal,
-    pub taxes: Decimal,
-    pub fees: Decimal,
-    pub currency: Currency,
-    pub exchange_rate: Decimal,
-}
-
-impl FromRow<'_, PgRow> for Transaction {
-    fn from_row(row: &PgRow) -> sqlx::Result<Self> {
-        Ok(Transaction {
-            date: row.try_get("date")?,
-            operation: row.try_get("operation")?,
-            instrument: serde_json::from_str(row.try_get("instrument")?).unwrap(),
-            quantity: row.try_get("quantity")?,
-            unit_price: row.try_get("unit_price")?,
-            taxes: row.try_get("taxes")?,
-            fees: row.try_get("fees")?,
-            currency: Currency::from_code(row.try_get("currency")?).unwrap(),
-            exchange_rate: row.try_get("exchange_rate")?,
-        })
-    }
-}
-
-pub struct TransactionRepository;
-
-pub type Db = Pool<Postgres>;
-
-#[async_trait]
-pub trait Repository<E> {
-    const TABLE: &'static str;
-
-    async fn recreate(db: &Db) -> sqlx::Result<()> {
-        Self::drop(db).await?;
-        Self::create(db).await?;
-        Ok(())
-    }
-    async fn create(db: &Db) -> sqlx::Result<()>;
-    async fn drop(db: &Db) -> sqlx::Result<()>;
-
-    async fn add(db: &Db, entity: &E) -> sqlx::Result<i64>;
-    async fn get(db: &Db, id: i64) -> sqlx::Result<E>;
-    async fn list(db: &Db) -> sqlx::Result<Vec<E>>;
-    async fn update(db: &Db, id: i64, entity: E) -> sqlx::Result<i64>;
-    async fn delete(db: &Db, id: i64) -> sqlx::Result<i64>;
-}
-
-#[async_trait]
-impl Repository<Transaction> for TransactionRepository {
-    const TABLE: &'static str = "transaction";
-
-    async fn create(db: &Db) -> sqlx::Result<()> {
-        sqlx::query(
-            r#"
-            CREATE TYPE operation AS ENUM (
-                'buy',
-                'sell',
-                'dividend',
-                'deposit',
-                'withdrawal'
-            )
-        "#,
-        )
-        .execute(db)
-        .await?;
-
-        sqlx::query(
-            r#"
-            CREATE TABLE IF NOT EXISTS transaction (
-                id              BIGSERIAL PRIMARY KEY,
-                date            DATE NOT NULL,
-                operation       operation NOT NULL,
-                instrument      VARCHAR(50) NOT NULL,
-                quantity        DECIMAL NOT NULL,
-                unit_price      DECIMAL NOT NULL,
-                taxes           DECIMAL NOT NULL,
-                fees            DECIMAL NOT NULL,
-                currency        VARCHAR(3) NOT NULL,
-                exchange_rate   DECIMAL NOT NULL
-            )
-        "#,
-        )
-        .execute(db)
-        .await?;
-        Ok(())
-    }
-
-    async fn drop(db: &Db) -> sqlx::Result<()> {
-        sqlx::query("DROP TABLE IF EXISTS transaction")
-            .execute(db)
-            .await?;
-        sqlx::query("DROP TYPE IF EXISTS operation")
-            .execute(db)
-            .await?;
-        Ok(())
-    }
-
-    async fn add(db: &Db, tx: &Transaction) -> sqlx::Result<i64> {
-        let (id,) = sqlx::query_as(
-            r#"
-                INSERT INTO transaction (
-                    date,
-                    operation,
-                    instrument,
-                    quantity,
-                    unit_price,
-                    taxes,
-                    fees,
-                    currency,
-                    exchange_rate
-                )
-                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-                RETURNING id
-            "#,
-        )
-        .bind(tx.date)
-        .bind(tx.operation)
-        .bind(serde_json::to_string(&tx.instrument).unwrap())
-        .bind(tx.quantity)
-        .bind(tx.unit_price)
-        .bind(tx.taxes)
-        .bind(tx.fees)
-        .bind(tx.currency.code())
-        .bind(tx.exchange_rate)
-        .fetch_one(db)
-        .await?;
-        Ok(id)
-    }
-
-    async fn get(db: &Db, id: i64) -> sqlx::Result<Transaction> {
-        let transaction: Transaction = sqlx::query_as(
-            r#"
-                SELECT
-                    date,
-                    operation,
-                    quantity,
-                    instrument,
-                    unit_price,
-                    taxes,
-                    fees,
-                    currency,
-                    exchange_rate
-                FROM
-                    transaction
-                WHERE id=$1"#,
-        )
-        .bind(id)
-        .fetch_one(db)
-        .await?;
-        Ok(transaction)
-    }
-
-    async fn list(db: &Db) -> sqlx::Result<Vec<Transaction>> {
-        todo!()
-    }
-    async fn update(db: &Db, id: i64, entity: Transaction) -> sqlx::Result<i64> {
-        todo!()
-    }
-    async fn delete(db: &Db, id: i64) -> sqlx::Result<i64> {
-        todo!()
-    }
-}
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -210,7 +24,7 @@ async fn main() -> Result<()> {
     let url = std::env::var("DATABASE_URL").expect("missing DATABASE_URL env");
     let pool = PgPool::connect(&url).await?;
 
-    TransactionRepository::recreate(&pool).await?;
+    TransactionTable::recreate(&pool).await?;
 
     let aapl = Stock {
         ticker: Ticker("AAPL".into()),
@@ -229,8 +43,20 @@ async fn main() -> Result<()> {
         exchange_rate: dec!(0.9),
     };
 
-    let id = TransactionRepository::add(&pool, &tx).await?;
-    let fetched = TransactionRepository::get(&pool, id).await?;
+    let id = TransactionTable::add(&pool, &tx).await?;
+    let fetched = TransactionTable::get(&pool, id).await?;
     assert_eq!(tx, fetched);
+
+    let all = TransactionTable::list(&pool).await?;
+    println!("{:#?}", all);
+
+    let deleted = TransactionTable::delete(&pool, id).await?;
+    assert_eq!(deleted, 1);
+
+    assert!(matches!(
+        TransactionTable::get(&pool, id).await,
+        Err(sqlx::Error::RowNotFound)
+    ));
+
     Ok(())
 }

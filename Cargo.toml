@@ -7,6 +7,7 @@ edition = "2021"
 async-trait = "0.1.77"
 dotenv = "0.15.0"
 iso_currency = { version = "0.4.4", features = ["serde", "with-serde"] }
+itertools = "0.12.1"
 oxydized-money = "0.3.0"
 oxydized-money-macros = "0.2.0"
 rust_decimal = "1.34.3"
@@ -20,4 +21,5 @@ sqlx = { version = "0.7.4", features = [
     "rust_decimal",
     "macros",
 ] }
+strum = { version = "0.26.2", features = ["derive"] }
 tokio = { version = "1.36.0", features = ["full"] }
