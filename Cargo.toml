@@ -1,5 +1,5 @@
 [package]
-name = "sqweal"
+name = "miniorm"
 version = "0.1.0"
 edition = "2021"
 
@@ -27,4 +27,4 @@ miniorm-macros = { path = "./macros" }
 
 
 [workspace]
-members = ["macros"]
+members = ["examples/simple", "macros"]

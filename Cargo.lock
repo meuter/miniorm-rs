@@ -766,6 +766,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
 
 [[package]]
+name = "miniorm"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "dotenv",
+ "iso_currency",
+ "itertools",
+ "miniorm-macros",
+ "oxydized-money",
+ "oxydized-money-macros",
+ "rust_decimal",
+ "rust_decimal_macros",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "strum 0.26.2",
+ "tokio",
+]
+
+[[package]]
 name = "miniorm-macros"
 version = "0.1.0"
 dependencies = [
@@ -1305,6 +1325,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f27f6278552951f1f2b8cf9da965d10969b2efdea95a6ec47987ab46edfe263a"
 
 [[package]]
+name = "simple"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "dotenv",
+ "miniorm",
+ "miniorm-macros",
+ "sqlx",
+ "tokio",
+]
+
+[[package]]
 name = "slab"
 version = "0.4.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1564,26 +1596,6 @@ dependencies = [
  "tracing",
  "url",
  "urlencoding",
-]
-
-[[package]]
-name = "sqweal"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "dotenv",
- "iso_currency",
- "itertools",
- "miniorm-macros",
- "oxydized-money",
- "oxydized-money-macros",
- "rust_decimal",
- "rust_decimal_macros",
- "serde",
- "serde_json",
- "sqlx",
- "strum 0.26.2",
- "tokio",
 ]
 
 [[package]]

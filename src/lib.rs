@@ -8,6 +8,7 @@ use sqlx::{
     Pool, Postgres,
 };
 
+// TODO: generalize to sqlite or mysql
 pub type Db = Pool<Postgres>;
 pub type TableName = &'static str;
 pub type ColunmName = &'static str;
@@ -79,7 +80,7 @@ where
 {
     const TABLE: Table;
 
-    async fn recreate(db: &Db) -> sqlx::Result<()> {
+    async fn recreate_table(db: &Db) -> sqlx::Result<()> {
         Self::drop_table(db).await?;
         Self::create_table(db).await?;
         Ok(())
@@ -117,7 +118,8 @@ where
         sqlx::query_as(&sql).fetch_all(db).await
     }
 
-    async fn update(db: &Db, id: i64, entity: E) -> sqlx::Result<i64>;
+    // TODO: support update
+    // async fn update(db: &Db, id: i64, entity: E) -> sqlx::Result<i64>;
 
     async fn delete(db: &Db, id: i64) -> sqlx::Result<u64> {
         let sql = Self::TABLE.delete("WHERE id=$1");
@@ -127,4 +129,6 @@ where
             .await?
             .rows_affected())
     }
+
+    // TODO: support delete_all
 }

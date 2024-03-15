@@ -32,18 +32,18 @@ fn generate_bind_implementation(input: DeriveInput) -> TokenStream {
             }
         } else {
             quote! {
-                #field_str => query.bind(self.#field_ident),
+                #field_str => query.bind(self.#field_ident.clone()),
             }
         }
     });
 
     quote! {
-        impl crate::miniorm::Bind for #ident {
+        impl ::miniorm::Bind for #ident {
             fn bind<'q, O>(
                 &self,
-                query: crate::miniorm::PgQueryAs<'q, O>,
-                column_name: crate::miniorm::ColunmName
-            ) -> crate::miniorm::PgQueryAs<'q, O> {
+                query: ::miniorm::PgQueryAs<'q, O>,
+                column_name: ::miniorm::ColunmName
+            ) -> ::miniorm::PgQueryAs<'q, O> {
                 match column_name {
                     #(#match_arms)*
                     _ => query,
