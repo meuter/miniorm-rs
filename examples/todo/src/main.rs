@@ -2,6 +2,7 @@
 struct Todo {
     #[column(TEXT NOT NULL)]
     description: String,
+
     #[column(BOOLEAN NOT NULL DEFAULT false)]
     done: bool,
 }
@@ -12,7 +13,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let url = std::env::var("DATABASE_URL").expect("missing DATABASE_URL env");
     let db = sqlx::PgPool::connect(&url).await?;
-    let store = miniorm::CrudStore::<'_, Todo>::new(&db);
+    let store = miniorm::CrudStore::new(&db);
 
     let todo = Todo {
         description: "checkout miniorm".into(),
