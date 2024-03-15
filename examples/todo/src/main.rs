@@ -36,7 +36,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     assert_eq!(todo, fetched);
 
     fetched.done = true;
-    store.update(id, &fetched).await?;
+    let id_after_update = store.update(id, &fetched).await?;
+    assert_eq!(id_after_update, id);
 
     println!("Listing all...");
     let all = store.list().await?;

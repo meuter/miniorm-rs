@@ -6,7 +6,7 @@ use sqlx::{
     query::QueryAs,
     Pool, Postgres,
 };
-use std::{iter, marker::PhantomData};
+use std::marker::PhantomData;
 
 pub use miniorm_macros::{HasTable, ToRow};
 
@@ -69,6 +69,19 @@ impl Table {
             .map(|i| format!("${i}"))
             .join(", ");
         format!("INSERT INTO {table} ({cols}) VALUES ({values}) RETURNING id")
+    }
+
+    fn update(&self) -> String {
+        let table = self.table();
+        let values = self
+            .columns()
+            .iter()
+            .map(|col| col.0)
+            .enumerate()
+            .map(|(i, col)| format!("{col}=${}", i + 1))
+            .join(", ");
+        let suffix = format!("WHERE id=${}", self.columns().len() + 1);
+        format!("UPDATE {table} SET {values} {suffix} RETURNING id")
     }
 
     fn select(&self, suffix: &str) -> String {
@@ -161,23 +174,14 @@ where
     }
 
     pub async fn update(&self, id: i64, entity: &E) -> sqlx::Result<i64> {
-        let table = E::TABLE.table();
-        let values = E::TABLE
-            .columns()
-            .iter()
-            .map(|col| col.0)
-            .enumerate()
-            .map(|(i, col)| format!("{col}=${}", i + 1))
-            .join(", ");
-        let suffix = format!("WHERE id=${}", E::TABLE.columns().len() + 1);
-        let sql = format!("UPDATE {table} SET {values} {suffix} RETURNING id");
-
+        let sql = E::TABLE.update();
         let mut query = sqlx::query_as(&sql);
+
         for col in E::TABLE.columns().iter().map(|col| col.0) {
             query = entity.bind(query, col)
         }
 
-        query.bind(id).fetch_one(self.db).await?;
-        Ok(1)
+        let (id,) = query.bind(id).fetch_one(self.db).await?;
+        Ok(id)
     }
 }
