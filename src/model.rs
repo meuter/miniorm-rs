@@ -1,7 +1,7 @@
 use iso_currency::Currency;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
-use sqlx::types::chrono::NaiveDate;
+use sqlx::{prelude::FromRow, types::chrono::NaiveDate};
 
 #[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub struct Ticker(pub String);
@@ -27,15 +27,18 @@ pub enum Operation {
     Withdrawal,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, FromRow)]
 pub struct Transaction {
     pub date: NaiveDate,
+    #[sqlx(json)]
     pub operation: Operation,
+    #[sqlx(json)]
     pub instrument: Instrument,
     pub quantity: Decimal,
     pub unit_price: Decimal,
     pub taxes: Decimal,
     pub fees: Decimal,
+    #[sqlx(json)]
     pub currency: Currency,
     pub exchange_rate: Decimal,
 }

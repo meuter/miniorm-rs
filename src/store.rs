@@ -3,7 +3,6 @@ use crate::{
     model::Transaction,
 };
 use async_trait::async_trait;
-use sqlx::{postgres::PgRow, FromRow, Row};
 
 pub struct TransactionStore;
 
@@ -26,22 +25,6 @@ impl Store<Transaction> for TransactionStore {
 
     async fn update(_db: &Db, _id: i64, _entity: Transaction) -> sqlx::Result<i64> {
         todo!()
-    }
-}
-
-impl FromRow<'_, PgRow> for Transaction {
-    fn from_row(row: &PgRow) -> sqlx::Result<Self> {
-        Ok(Transaction {
-            date: row.try_get("date")?,
-            operation: serde_json::from_value(row.try_get("operation")?).unwrap(),
-            instrument: serde_json::from_value(row.try_get("instrument")?).unwrap(),
-            quantity: row.try_get("quantity")?,
-            unit_price: row.try_get("unit_price")?,
-            taxes: row.try_get("taxes")?,
-            fees: row.try_get("fees")?,
-            currency: serde_json::from_value(row.try_get("currency")?).unwrap(),
-            exchange_rate: row.try_get("exchange_rate")?,
-        })
     }
 }
 
