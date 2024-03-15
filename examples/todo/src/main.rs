@@ -32,13 +32,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let id = store.create(&todo).await?;
 
     println!("Retrieveing by id...");
-    let fetched = store.read(id).await?;
+    let mut fetched = store.read(id).await?;
     assert_eq!(todo, fetched);
+
+    fetched.done = true;
+    store.update(id, &fetched).await?;
 
     println!("Listing all...");
     let all = store.list().await?;
     assert_eq!(all.len(), 1);
-    assert_eq!(&todo, &all[0]);
+    assert_eq!(&fetched, &all[0]);
 
     println!("Deleting by id...");
     let deleted = store.delete(id).await?;

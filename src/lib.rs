@@ -6,11 +6,10 @@ use sqlx::{
     query::QueryAs,
     Pool, Postgres,
 };
-use std::marker::PhantomData;
+use std::{iter, marker::PhantomData};
 
 pub use miniorm_macros::{HasTable, ToRow};
 
-// TODO: generalize to sqlite or mysql
 pub type Db = Pool<Postgres>;
 pub type TableName = &'static str;
 pub type ColunmName = &'static str;
@@ -84,23 +83,22 @@ impl Table {
     }
 }
 
-pub struct CrudStore<'d, E>
-where
-    E: for<'r> FromRow<'r, PgRow> + Send + Unpin + traits::ToRow + Sync + traits::HasTable,
-{
+pub struct CrudStore<'d, E> {
     db: &'d Db,
     entity: PhantomData<E>,
 }
 
-impl<'d, E> CrudStore<'d, E>
-where
-    E: for<'r> FromRow<'r, PgRow> + Send + Unpin + traits::ToRow + Sync + traits::HasTable,
-{
+impl<'d, E> CrudStore<'d, E> {
     pub fn new(db: &'d Db) -> Self {
         let entity = PhantomData;
         Self { db, entity }
     }
+}
 
+impl<'d, E> CrudStore<'d, E>
+where
+    E: traits::HasTable,
+{
     pub async fn recreate_table(&self) -> sqlx::Result<PgQueryResult> {
         self.drop_table().await?;
         self.create_table().await
@@ -116,31 +114,6 @@ where
         sqlx::query(&sql).execute(self.db).await
     }
 
-    pub async fn create(&self, entity: &E) -> sqlx::Result<i64> {
-        let sql = E::TABLE.insert();
-        let mut query_as = sqlx::query_as(&sql);
-
-        for col in E::TABLE.columns().iter().map(|col| col.0) {
-            query_as = entity.bind(query_as, col)
-        }
-
-        let (id,) = query_as.fetch_one(self.db).await?;
-        Ok(id)
-    }
-
-    pub async fn read(&self, id: i64) -> sqlx::Result<E> {
-        let sql = E::TABLE.select("WHERE id=$1");
-        sqlx::query_as(&sql).bind(id).fetch_one(self.db).await
-    }
-
-    pub async fn list(&self) -> sqlx::Result<Vec<E>> {
-        let sql = E::TABLE.select("ORDER BY id");
-        sqlx::query_as(&sql).fetch_all(self.db).await
-    }
-
-    // TODO: support update
-    // async fn update(db: &Db, id: i64, entity: E) -> sqlx::Result<i64>;
-
     pub async fn delete(&self, id: i64) -> sqlx::Result<u64> {
         let sql = E::TABLE.delete("WHERE id=$1");
         Ok(sqlx::query(&sql)
@@ -150,5 +123,61 @@ where
             .rows_affected())
     }
 
-    // TODO: support delete_all
+    pub async fn delete_all(&self) -> sqlx::Result<u64> {
+        let sql = E::TABLE.delete("");
+        Ok(sqlx::query(&sql).execute(self.db).await?.rows_affected())
+    }
+}
+
+impl<'d, E> CrudStore<'d, E>
+where
+    E: for<'r> FromRow<'r, PgRow> + traits::HasTable + Unpin + Send,
+{
+    pub async fn read(&self, id: i64) -> sqlx::Result<E> {
+        let sql = E::TABLE.select("WHERE id=$1");
+        sqlx::query_as(&sql).bind(id).fetch_one(self.db).await
+    }
+
+    pub async fn list(&self) -> sqlx::Result<Vec<E>> {
+        let sql = E::TABLE.select("ORDER BY id");
+        sqlx::query_as(&sql).fetch_all(self.db).await
+    }
+}
+
+impl<'d, E> CrudStore<'d, E>
+where
+    E: for<'r> FromRow<'r, PgRow> + traits::ToRow + traits::HasTable,
+{
+    pub async fn create(&self, entity: &E) -> sqlx::Result<i64> {
+        let sql = E::TABLE.insert();
+        let mut query = sqlx::query_as(&sql);
+
+        for col in E::TABLE.columns().iter().map(|col| col.0) {
+            query = entity.bind(query, col)
+        }
+
+        let (id,) = query.fetch_one(self.db).await?;
+        Ok(id)
+    }
+
+    pub async fn update(&self, id: i64, entity: &E) -> sqlx::Result<i64> {
+        let table = E::TABLE.table();
+        let values = E::TABLE
+            .columns()
+            .iter()
+            .map(|col| col.0)
+            .enumerate()
+            .map(|(i, col)| format!("{col}=${}", i + 1))
+            .join(", ");
+        let suffix = format!("WHERE id=${}", E::TABLE.columns().len() + 1);
+        let sql = format!("UPDATE {table} SET {values} {suffix} RETURNING id");
+
+        let mut query = sqlx::query_as(&sql);
+        for col in E::TABLE.columns().iter().map(|col| col.0) {
+            query = entity.bind(query, col)
+        }
+
+        query.bind(id).fetch_one(self.db).await?;
+        Ok(1)
+    }
 }
