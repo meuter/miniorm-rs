@@ -4,7 +4,7 @@ use syn::{parse, DeriveInput, Meta, MetaList};
 
 fn generate_has_table(input: DeriveInput) -> TokenStream {
     let ident = input.ident;
-    let table = ident.to_string().to_lowercase();
+    let table_name = ident.to_string().to_lowercase();
 
     let fields = match input.data {
         syn::Data::Struct(data) => data.fields,
@@ -43,10 +43,10 @@ fn generate_has_table(input: DeriveInput) -> TokenStream {
 
     quote! {
         impl ::miniorm::traits::Schema for #ident {
-            const TABLE: ::miniorm::Table = miniorm::Table(
-                #table,
-                &[ #(#table_entries)* ],
-            );
+            const TABLE_NAME: &'static str = #table_name;
+            const COLUMNS: &'static [(&'static str, &'static str)] = &[
+                #(#table_entries)*
+            ];
         }
     }
     .into()
@@ -91,9 +91,9 @@ fn generate_bind(input: DeriveInput) -> TokenStream {
         impl ::miniorm::traits::ToRow for #ident {
             fn bind<'q, O>(
                 &self,
-                query: ::miniorm::PgQueryAs<'q, O>,
-                column_name: ::miniorm::ColunmName
-            ) -> ::miniorm::PgQueryAs<'q, O> {
+                query: ::miniorm::traits::Query<'q, O>,
+                column_name: &'static str
+            ) -> ::miniorm::traits::Query<'q, O> {
                 match column_name {
                     #(#match_arms)*
                     _ => query,
