@@ -1,4 +1,5 @@
 use iso_currency::Currency;
+use miniorm_macros::Bind;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use sqlx::{prelude::FromRow, types::chrono::NaiveDate};
@@ -27,7 +28,7 @@ pub enum Operation {
     Withdrawal,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, FromRow)]
+#[derive(Clone, Debug, Eq, PartialEq, FromRow, Bind)]
 pub struct Transaction {
     pub date: NaiveDate,
     #[sqlx(json)]

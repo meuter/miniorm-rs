@@ -766,6 +766,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
 
 [[package]]
+name = "miniorm-macros"
+version = "0.1.0"
+dependencies = [
+ "quote",
+ "syn 2.0.52",
+]
+
+[[package]]
 name = "miniz_oxide"
 version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1566,6 +1574,7 @@ dependencies = [
  "dotenv",
  "iso_currency",
  "itertools",
+ "miniorm-macros",
  "oxydized-money",
  "oxydized-money-macros",
  "rust_decimal",

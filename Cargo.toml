@@ -23,3 +23,8 @@ sqlx = { version = "0.7.4", features = [
 ] }
 strum = { version = "0.26.2", features = ["derive"] }
 tokio = { version = "1.36.0", features = ["full"] }
+miniorm-macros = { path = "./macros" }
+
+
+[workspace]
+members = ["macros"]

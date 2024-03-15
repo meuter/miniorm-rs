@@ -1,5 +1,5 @@
 use crate::{
-    miniorm::{Bind, ColunmName, Db, PgQueryAs, Store, Table},
+    miniorm::{Db, Store, Table},
     model::Transaction,
 };
 use async_trait::async_trait;
@@ -28,19 +28,7 @@ impl Store<Transaction> for TransactionStore {
     }
 }
 
-impl Bind for Transaction {
-    fn bind<'q, O>(&self, query: PgQueryAs<'q, O>, column_name: ColunmName) -> PgQueryAs<'q, O> {
-        match column_name {
-            "date" => query.bind(self.date),
-            "operation" => query.bind(serde_json::to_value(self.operation).unwrap()),
-            "instrument" => query.bind(serde_json::to_value(&self.instrument).unwrap()),
-            "quantity" => query.bind(self.quantity),
-            "unit_price" => query.bind(self.unit_price),
-            "taxes" => query.bind(self.taxes),
-            "fees" => query.bind(self.fees),
-            "currency" => query.bind(serde_json::to_value(self.currency).unwrap()),
-            "exchange_rate" => query.bind(self.exchange_rate),
-            _ => query,
-        }
-    }
-}
+// impl Bind for Transaction {
+//     fn bind<'q, O>(&self, query: PgQueryAs<'q, O>, column_name: ColunmName) -> PgQueryAs<'q, O> {
+//     }
+// }
