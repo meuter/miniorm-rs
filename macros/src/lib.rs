@@ -34,7 +34,7 @@ fn generate_has_table(input: DeriveInput) -> TokenStream {
                 }
             })
             .next()
-            .expect("missing `#[column(<type>)]`");
+            .unwrap_or_else(|| panic!("missing `#[column(<type>)]` for `{field_str}`, e.g. `#[column(TEXT NOT NULL)]`"));
 
         quote! {
             (#field_str, #col_type),

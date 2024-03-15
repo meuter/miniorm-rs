@@ -1,15 +1,69 @@
-mod store;
-mod transaction;
-
 use dotenv::dotenv;
 use iso_currency::Currency;
 use miniorm::CrudStore;
+use miniorm_macros::{Bind, HasTable};
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
-use sqlx::{types::chrono::NaiveDate, PgPool};
-use transaction::{Instrument, Operation, Transaction};
+use serde::{Deserialize, Serialize};
+use sqlx::PgPool;
+use sqlx::{prelude::FromRow, types::chrono::NaiveDate};
 
-use crate::transaction::{Stock, Ticker};
+#[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
+pub struct Ticker(pub String);
+
+#[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
+pub struct Stock {
+    pub ticker: Ticker,
+    pub currency: Currency,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
+pub enum Instrument {
+    Cash(Currency),
+    Stock(Stock),
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub enum Operation {
+    Buy,
+    Sell,
+    Dividend,
+    Deposit,
+    Withdrawal,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, FromRow, Bind, HasTable)]
+pub struct Transaction {
+    #[column(DATE NOT NULL)]
+    pub date: NaiveDate,
+
+    #[sqlx(json)]
+    #[column(JSONB NOT NULL)]
+    pub operation: Operation,
+
+    #[sqlx(json)]
+    #[column(JSONB NOT NULL)]
+    pub instrument: Instrument,
+
+    #[column(DECIMAL NOT NULL)]
+    pub quantity: Decimal,
+
+    #[column(DECIMAL NOT NULL)]
+    pub unit_price: Decimal,
+
+    #[column(DECIMAL NOT NULL)]
+    pub taxes: Decimal,
+
+    #[column(DECIMAL NOT NULL)]
+    pub fees: Decimal,
+
+    #[sqlx(json)]
+    #[column(JSONB NOT NULL)]
+    pub currency: Currency,
+
+    #[column(DECIMAL NOT NULL)]
+    pub exchange_rate: Decimal,
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
