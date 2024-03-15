@@ -1,4 +1,4 @@
-use crate::traits;
+use crate::traits::Schema;
 use sqlx::{
     postgres::{PgQueryResult, PgRow},
     prelude::FromRow,
@@ -6,12 +6,38 @@ use sqlx::{
 };
 use std::marker::PhantomData;
 
+/// A `CrudStore` is a wrapper around the [`PgPool`] that allows
+/// to perform basic, so-called "CRUD" operations.
+///
+/// The so-called "CRUD" operations are:
+/// - (C)reate
+/// - (R)ead
+/// - (U)pdate
+/// - (D)elete
+///
+/// For these operation to be available, the underlying entity type
+/// should implement the following traits:
+/// - [FromRow] from `sqlx`.
+/// - [Schema] from this crate.
+///
+/// Note that both can be derived automatically; [FromRow] using sqlx
+/// and [Schema] using this crate.
+///
+/// # Examples
+///
+/// - [todo example](../src/miniorm_example_todo/main.rs.html) for a simple example.
+/// - [stock transaction example](../src/miniorm_example_transactions/main.rs.html)
+///   for a more complex example, where certain fields are stored as
+///   [`JSONB`](https://www.postgresql.org/docs/current/datatype-json.html) column
+///   using [`serde_json`].
+///
 pub struct CrudStore<'d, E> {
     db: &'d PgPool,
     entity: PhantomData<E>,
 }
 
 impl<'d, E> CrudStore<'d, E> {
+    /// Create a new [`CrudStore`]
     pub fn new(db: &'d PgPool) -> Self {
         let entity = PhantomData;
         Self { db, entity }
@@ -20,18 +46,21 @@ impl<'d, E> CrudStore<'d, E> {
 
 impl<'d, E> CrudStore<'d, E>
 where
-    E: traits::Schema,
+    E: Schema,
 {
+    /// Recreates the table associated with the entity's [`Schema`]
     pub async fn recreate_table(&self) -> sqlx::Result<PgQueryResult> {
         self.drop_table().await?;
         self.create_table().await
     }
 
+    /// Creates the table associated with the entity's [`Schema`]
     pub async fn create_table(&self) -> sqlx::Result<PgQueryResult> {
         let sql = E::create_table();
         sqlx::query(&sql).execute(self.db).await
     }
 
+    ///  the table associated with the entity's [`Schema`]
     pub async fn drop_table(&self) -> sqlx::Result<PgQueryResult> {
         let sql = E::drop_table();
         sqlx::query(&sql).execute(self.db).await
@@ -54,7 +83,7 @@ where
 
 impl<'d, E> CrudStore<'d, E>
 where
-    E: for<'r> FromRow<'r, PgRow> + traits::Schema + Unpin + Send,
+    E: for<'r> FromRow<'r, PgRow> + Schema + Unpin + Send,
 {
     pub async fn read(&self, id: i64) -> sqlx::Result<E> {
         let sql = E::select("WHERE id=$1");
@@ -69,7 +98,7 @@ where
 
 impl<'d, E> CrudStore<'d, E>
 where
-    E: for<'r> FromRow<'r, PgRow> + traits::Schema,
+    E: for<'r> FromRow<'r, PgRow> + Schema,
 {
     pub async fn create(&self, entity: &E) -> sqlx::Result<i64> {
         let sql = E::insert();
