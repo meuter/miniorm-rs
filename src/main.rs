@@ -43,18 +43,18 @@ async fn main() -> Result<()> {
         exchange_rate: dec!(0.9),
     };
 
-    let id = TransactionTable::add(&pool, &tx).await?;
-    let fetched = TransactionTable::get(&pool, id).await?;
+    let id = TransactionTable::create(&pool, &tx).await?;
+    let fetched = TransactionTable::read(&pool, id).await?;
     assert_eq!(tx, fetched);
 
     let all = TransactionTable::list(&pool).await?;
-    println!("{:#?}", all);
+    assert_eq!(vec![tx], all);
 
     let deleted = TransactionTable::delete(&pool, id).await?;
     assert_eq!(deleted, 1);
 
     assert!(matches!(
-        TransactionTable::get(&pool, id).await,
+        TransactionTable::read(&pool, id).await,
         Err(sqlx::Error::RowNotFound)
     ));
 

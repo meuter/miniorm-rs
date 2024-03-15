@@ -1,21 +1,33 @@
 use std::str::FromStr;
 
 use crate::{
-    miniorm::{Columns, ColunmName, Db, Table, TableName},
+    miniorm::{Bind, Columns, ColunmName, Db, PgQueryAs, Table, TableName},
     model::{Operation, Transaction},
 };
 use async_trait::async_trait;
 use iso_currency::Currency;
-use sqlx::{database::HasArguments, postgres::PgRow, query::QueryAs, FromRow, Postgres, Row};
+use sqlx::{postgres::PgRow, FromRow, Row};
 
-pub type PgQueryAs<'q, O> = QueryAs<'q, Postgres, O, <Postgres as HasArguments<'q>>::Arguments>;
+pub struct TransactionTable;
 
-pub trait Bind {
-    fn bind_column<'q, O>(
-        &self,
-        query: PgQueryAs<'q, O>,
-        column_name: ColunmName,
-    ) -> PgQueryAs<'q, O>;
+#[async_trait]
+impl Table<Transaction> for TransactionTable {
+    const TABLE_NAME: TableName = "transaction";
+    const COLUMNS: Columns = &[
+        ("date", "DATE NOT NULL"),
+        ("operation", "VARCHAR(10) NOT NULL"),
+        ("instrument", "VARCHAR(50) NOT NULL"),
+        ("quantity", "DECIMAL NOT NULL"),
+        ("unit_price", "DECIMAL NOT NULL"),
+        ("taxes", "DECIMAL NOT NULL"),
+        ("fees", "DECIMAL NOT NULL"),
+        ("currency", "VARCHAR(3) NOT NULL"),
+        ("exchange_rate", "DECIMAL NOT NULL"),
+    ];
+
+    async fn update(_db: &Db, _id: i64, _entity: Transaction) -> sqlx::Result<i64> {
+        todo!()
+    }
 }
 
 impl FromRow<'_, PgRow> for Transaction {
@@ -35,72 +47,18 @@ impl FromRow<'_, PgRow> for Transaction {
 }
 
 impl Bind for Transaction {
-    fn bind_column<'q, O>(
-        &self,
-        query: PgQueryAs<'q, O>,
-        column_name: ColunmName,
-    ) -> PgQueryAs<'q, O> {
+    fn bind<'q, O>(&self, query: PgQueryAs<'q, O>, column_name: ColunmName) -> PgQueryAs<'q, O> {
         match column_name {
             "date" => query.bind(self.date),
+            "operation" => query.bind(format!("{}", self.operation)),
+            "instrument" => query.bind(serde_json::to_string(&self.instrument).unwrap()),
+            "quantity" => query.bind(self.quantity),
             "unit_price" => query.bind(self.unit_price),
+            "taxes" => query.bind(self.taxes),
+            "fees" => query.bind(self.fees),
+            "currency" => query.bind(self.currency.code()),
+            "exchange_rate" => query.bind(self.exchange_rate),
             _ => query,
         }
-    }
-}
-
-pub struct TransactionTable;
-
-#[async_trait]
-impl Table<Transaction> for TransactionTable {
-    const TABLE_NAME: TableName = "transaction";
-    const COLUMNS: Columns = &[
-        ("id", "BIGSERIAL PRIMARY KEY"),
-        ("date", "DATE NOT NULL"),
-        ("operation", "VARCHAR(10) NOT NULL"),
-        ("instrument", "VARCHAR(50) NOT NULL"),
-        ("quantity", "DECIMAL NOT NULL"),
-        ("unit_price", "DECIMAL NOT NULL"),
-        ("taxes", "DECIMAL NOT NULL"),
-        ("fees", "DECIMAL NOT NULL"),
-        ("currency", "VARCHAR(3) NOT NULL"),
-        ("exchange_rate", "DECIMAL NOT NULL"),
-    ];
-
-    async fn add(db: &Db, tx: &Transaction) -> sqlx::Result<i64> {
-        let query_as = sqlx::query_as(
-            r#"
-                INSERT INTO transaction (
-                    date,
-                    operation,
-                    instrument,
-                    quantity,
-                    unit_price,
-                    taxes,
-                    fees,
-                    currency,
-                    exchange_rate
-                )
-                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-                RETURNING id
-            "#,
-        );
-
-        let (id,) = tx
-            .bind_column(query_as, "date")
-            .bind(format!("{}", tx.operation))
-            .bind(serde_json::to_string(&tx.instrument).unwrap())
-            .bind(tx.quantity)
-            .bind(tx.unit_price)
-            .bind(tx.taxes)
-            .bind(tx.fees)
-            .bind(tx.currency.code())
-            .bind(tx.exchange_rate)
-            .fetch_one(db)
-            .await?;
-        Ok(id)
-    }
-
-    async fn update(_db: &Db, _id: i64, _entity: Transaction) -> sqlx::Result<i64> {
-        todo!()
     }
 }
