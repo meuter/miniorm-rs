@@ -23,6 +23,11 @@ pub trait Bind {
     fn bind<'q, O>(&self, query: PgQueryAs<'q, O>, column_name: ColunmName) -> PgQueryAs<'q, O>;
 }
 
+#[async_trait]
+pub trait HasTable {
+    const TABLE: Table;
+}
+
 pub struct Table(pub TableName, pub Columns);
 
 impl Table {
@@ -75,33 +80,21 @@ impl Table {
     }
 }
 
-#[async_trait]
-pub trait HasTable<E>
+pub struct CrudStore<'d, E>
 where
-    E: for<'r> FromRow<'r, PgRow> + Send + Unpin + Bind + Sync,
-{
-    const TABLE: Table;
-}
-
-pub struct CrudStore<'d, E, S: HasTable<E>>
-where
-    S: Send,
-    E: for<'r> FromRow<'r, PgRow> + Send + Unpin + Bind + Sync,
+    E: for<'r> FromRow<'r, PgRow> + Send + Unpin + Bind + Sync + HasTable,
 {
     db: &'d Db,
     entity: PhantomData<E>,
-    store: PhantomData<S>,
 }
 
-impl<'d, E, S: HasTable<E>> CrudStore<'d, E, S>
+impl<'d, E> CrudStore<'d, E>
 where
-    S: Send,
-    E: for<'r> FromRow<'r, PgRow> + Send + Unpin + Bind + Sync,
+    E: for<'r> FromRow<'r, PgRow> + Send + Unpin + Bind + Sync + HasTable,
 {
     pub fn new(db: &'d Db) -> Self {
         let entity = PhantomData;
-        let store = PhantomData;
-        Self { db, entity, store }
+        Self { db, entity }
     }
 
     pub async fn recreate_table(&self) -> sqlx::Result<PgQueryResult> {
@@ -110,20 +103,20 @@ where
     }
 
     pub async fn create_table(&self) -> sqlx::Result<PgQueryResult> {
-        let sql = S::TABLE.create_table();
+        let sql = E::TABLE.create_table();
         sqlx::query(&sql).execute(self.db).await
     }
 
     pub async fn drop_table(&self) -> sqlx::Result<PgQueryResult> {
-        let sql = S::TABLE.drop_table();
+        let sql = E::TABLE.drop_table();
         sqlx::query(&sql).execute(self.db).await
     }
 
     pub async fn create(&self, entity: &E) -> sqlx::Result<i64> {
-        let sql = S::TABLE.insert();
+        let sql = E::TABLE.insert();
         let mut query_as = sqlx::query_as(&sql);
 
-        for col in S::TABLE.columns().iter().map(|col| col.0) {
+        for col in E::TABLE.columns().iter().map(|col| col.0) {
             query_as = entity.bind(query_as, col)
         }
 
@@ -132,12 +125,12 @@ where
     }
 
     pub async fn read(&self, id: i64) -> sqlx::Result<E> {
-        let sql = S::TABLE.select("WHERE id=$1");
+        let sql = E::TABLE.select("WHERE id=$1");
         sqlx::query_as(&sql).bind(id).fetch_one(self.db).await
     }
 
     pub async fn list(&self) -> sqlx::Result<Vec<E>> {
-        let sql = S::TABLE.select("ORDER BY id");
+        let sql = E::TABLE.select("ORDER BY id");
         sqlx::query_as(&sql).fetch_all(self.db).await
     }
 
@@ -145,7 +138,7 @@ where
     // async fn update(db: &Db, id: i64, entity: E) -> sqlx::Result<i64>;
 
     pub async fn delete(&self, id: i64) -> sqlx::Result<u64> {
-        let sql = S::TABLE.delete("WHERE id=$1");
+        let sql = E::TABLE.delete("WHERE id=$1");
         Ok(sqlx::query(&sql)
             .bind(id)
             .execute(self.db)

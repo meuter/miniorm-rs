@@ -3,10 +3,8 @@ use miniorm::{HasTable, Table};
 
 use crate::transaction::Transaction;
 
-pub struct TransactionStore;
-
 #[async_trait]
-impl HasTable<Transaction> for TransactionStore {
+impl HasTable for Transaction {
     const TABLE: Table = Table(
         "transaction",
         &[

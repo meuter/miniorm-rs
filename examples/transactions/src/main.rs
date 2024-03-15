@@ -9,10 +9,7 @@ use rust_decimal_macros::dec;
 use sqlx::{types::chrono::NaiveDate, PgPool};
 use transaction::{Instrument, Operation, Transaction};
 
-use crate::{
-    store::TransactionStore,
-    transaction::{Stock, Ticker},
-};
+use crate::transaction::{Stock, Ticker};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -20,7 +17,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let url = std::env::var("DATABASE_URL").expect("missing DATABASE_URL env");
     let db = PgPool::connect(&url).await?;
-    let store = CrudStore::<'_, Transaction, TransactionStore>::new(&db);
+    let store = CrudStore::<'_, Transaction>::new(&db);
 
     println!("Recreating table...");
     store.recreate_table().await?;
