@@ -9,12 +9,6 @@ use std::marker::PhantomData;
 /// A `CrudStore` is a wrapper around the [`PgPool`] that allows
 /// to perform basic, so-called "CRUD" operations.
 ///
-/// The so-called "CRUD" operations are:
-/// - (C)reate
-/// - (R)ead
-/// - (U)pdate
-/// - (D)elete
-///
 /// For these operation to be available, the underlying entity type
 /// should implement the following traits:
 /// - [FromRow] from `sqlx`.
@@ -22,15 +16,6 @@ use std::marker::PhantomData;
 ///
 /// Note that both can be derived automatically; [FromRow] using sqlx
 /// and [Schema] using this crate.
-///
-/// # Examples
-///
-/// - [todo example](../src/miniorm_example_todo/main.rs.html) for a simple example.
-/// - [stock transaction example](../src/miniorm_example_transactions/main.rs.html)
-///   for a more complex example, where certain fields are stored as
-///   [`JSONB`](https://www.postgresql.org/docs/current/datatype-json.html) column
-///   using [`serde_json`].
-///
 pub struct CrudStore<'d, E> {
     db: &'d PgPool,
     entity: PhantomData<E>,
