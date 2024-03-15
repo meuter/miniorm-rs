@@ -27,8 +27,3 @@ impl Store<Transaction> for TransactionStore {
         todo!()
     }
 }
-
-// impl Bind for Transaction {
-//     fn bind<'q, O>(&self, query: PgQueryAs<'q, O>, column_name: ColunmName) -> PgQueryAs<'q, O> {
-//     }
-// }

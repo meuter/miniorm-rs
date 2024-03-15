@@ -1,9 +1,41 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse, DeriveInput};
+use syn::{parse, DeriveInput, Meta, MetaList};
 
 fn generate_bind_implementation(input: DeriveInput) -> TokenStream {
     let ident = input.ident;
+
+    let fields = match input.data {
+        syn::Data::Struct(data) => data.fields,
+        syn::Data::Enum(_) => panic!("only structs are supported"),
+        syn::Data::Union(_) => panic!("only structs are supported"),
+    };
+
+    let match_arms = fields.into_iter().map(|field| {
+        let field_ident = field.ident.unwrap();
+        let field_str = field_ident.to_string();
+
+        let is_sqlx_json = field.attrs.into_iter().any(|attr| {
+            if let Meta::List(meta_list) = &attr.meta {
+                let MetaList { path, tokens, .. } = meta_list;
+                let is_sqlx = path.segments.iter().any(|seg| seg.ident == "sqlx");
+                let is_json = tokens.to_string() == "json";
+                is_sqlx && is_json
+            } else {
+                false
+            }
+        });
+
+        if is_sqlx_json {
+            quote! {
+                #field_str => query.bind(::serde_json::to_value(&self.#field_ident).unwrap()),
+            }
+        } else {
+            quote! {
+                #field_str => query.bind(self.#field_ident),
+            }
+        }
+    });
 
     quote! {
         impl crate::miniorm::Bind for #ident {
@@ -13,15 +45,7 @@ fn generate_bind_implementation(input: DeriveInput) -> TokenStream {
                 column_name: crate::miniorm::ColunmName
             ) -> crate::miniorm::PgQueryAs<'q, O> {
                 match column_name {
-                    "date" => query.bind(self.date),
-                    "operation" => query.bind(::serde_json::to_value(self.operation).unwrap()),
-                    "instrument" => query.bind(::serde_json::to_value(&self.instrument).unwrap()),
-                    "quantity" => query.bind(self.quantity),
-                    "unit_price" => query.bind(self.unit_price),
-                    "taxes" => query.bind(self.taxes),
-                    "fees" => query.bind(self.fees),
-                    "currency" => query.bind(::serde_json::to_value(self.currency).unwrap()),
-                    "exchange_rate" => query.bind(self.exchange_rate),
+                    #(#match_arms)*
                     _ => query,
                 }
             }
