@@ -3,7 +3,7 @@ mod transaction;
 
 use dotenv::dotenv;
 use iso_currency::Currency;
-use miniorm::NewStore;
+use miniorm::CrudStore;
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
 use sqlx::{types::chrono::NaiveDate, PgPool};
@@ -20,7 +20,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let url = std::env::var("DATABASE_URL").expect("missing DATABASE_URL env");
     let db = PgPool::connect(&url).await?;
-    let store = NewStore::<'_, Transaction, TransactionStore>::new(&db);
+    let store = CrudStore::<'_, Transaction, TransactionStore>::new(&db);
 
     println!("Recreating table...");
     store.recreate_table().await?;

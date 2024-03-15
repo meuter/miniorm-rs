@@ -2,7 +2,7 @@ use std::error::Error;
 
 use async_trait::async_trait;
 use dotenv::dotenv;
-use miniorm::{NewStore, Store, Table};
+use miniorm::{HasTable, CrudStore, Table};
 use miniorm_macros::Bind;
 use sqlx::{FromRow, PgPool};
 
@@ -15,7 +15,7 @@ struct Todo {
 struct TodoStore;
 
 #[async_trait]
-impl Store<Todo> for TodoStore {
+impl HasTable<Todo> for TodoStore {
     const TABLE: Table = Table(
         "todo",
         &[
@@ -31,7 +31,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let url = std::env::var("DATABASE_URL").expect("missing DATABASE_URL env");
     let db = PgPool::connect(&url).await?;
-    let store = NewStore::<'_, Todo, TodoStore>::new(&db);
+    let store = CrudStore::<'_, Todo, TodoStore>::new(&db);
 
     let todo = Todo {
         description: "checkout miniorm".into(),

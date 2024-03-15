@@ -76,66 +76,14 @@ impl Table {
 }
 
 #[async_trait]
-pub trait Store<E>
+pub trait HasTable<E>
 where
     E: for<'r> FromRow<'r, PgRow> + Send + Unpin + Bind + Sync,
 {
     const TABLE: Table;
-
-    async fn recreate_table(db: &Db) -> sqlx::Result<()> {
-        Self::drop_table(db).await?;
-        Self::create_table(db).await?;
-        Ok(())
-    }
-
-    async fn create_table(db: &Db) -> sqlx::Result<PgQueryResult> {
-        let sql = Self::TABLE.create_table();
-        sqlx::query(&sql).execute(db).await
-    }
-
-    async fn drop_table(db: &Db) -> sqlx::Result<PgQueryResult> {
-        let sql = Self::TABLE.drop_table();
-        sqlx::query(&sql).execute(db).await
-    }
-
-    async fn create(db: &Db, entity: &E) -> sqlx::Result<i64> {
-        let sql = Self::TABLE.insert();
-        let mut query_as = sqlx::query_as(&sql);
-
-        for col in Self::TABLE.columns().iter().map(|col| col.0) {
-            query_as = entity.bind(query_as, col)
-        }
-
-        let (id,) = query_as.fetch_one(db).await?;
-        Ok(id)
-    }
-
-    async fn read(db: &Db, id: i64) -> sqlx::Result<E> {
-        let sql = Self::TABLE.select("WHERE id=$1");
-        sqlx::query_as(&sql).bind(id).fetch_one(db).await
-    }
-
-    async fn list(db: &Db) -> sqlx::Result<Vec<E>> {
-        let sql = Self::TABLE.select("ORDER BY id");
-        sqlx::query_as(&sql).fetch_all(db).await
-    }
-
-    // TODO: support update
-    // async fn update(db: &Db, id: i64, entity: E) -> sqlx::Result<i64>;
-
-    async fn delete(db: &Db, id: i64) -> sqlx::Result<u64> {
-        let sql = Self::TABLE.delete("WHERE id=$1");
-        Ok(sqlx::query(&sql)
-            .bind(id)
-            .execute(db)
-            .await?
-            .rows_affected())
-    }
-
-    // TODO: support delete_all
 }
 
-pub struct NewStore<'d, E, S: Store<E>>
+pub struct CrudStore<'d, E, S: HasTable<E>>
 where
     S: Send,
     E: for<'r> FromRow<'r, PgRow> + Send + Unpin + Bind + Sync,
@@ -145,7 +93,7 @@ where
     store: PhantomData<S>,
 }
 
-impl<'d, E, S: Store<E>> NewStore<'d, E, S>
+impl<'d, E, S: HasTable<E>> CrudStore<'d, E, S>
 where
     S: Send,
     E: for<'r> FromRow<'r, PgRow> + Send + Unpin + Bind + Sync,
@@ -156,31 +104,54 @@ where
         Self { db, entity, store }
     }
 
-    pub async fn recreate_table(&self) -> sqlx::Result<()> {
-        S::recreate_table(self.db).await
+    pub async fn recreate_table(&self) -> sqlx::Result<PgQueryResult> {
+        self.drop_table().await?;
+        self.create_table().await
     }
 
     pub async fn create_table(&self) -> sqlx::Result<PgQueryResult> {
-        S::create_table(self.db).await
+        let sql = S::TABLE.create_table();
+        sqlx::query(&sql).execute(self.db).await
     }
 
     pub async fn drop_table(&self) -> sqlx::Result<PgQueryResult> {
-        S::drop_table(self.db).await
+        let sql = S::TABLE.drop_table();
+        sqlx::query(&sql).execute(self.db).await
     }
 
     pub async fn create(&self, entity: &E) -> sqlx::Result<i64> {
-        S::create(self.db, entity).await
+        let sql = S::TABLE.insert();
+        let mut query_as = sqlx::query_as(&sql);
+
+        for col in S::TABLE.columns().iter().map(|col| col.0) {
+            query_as = entity.bind(query_as, col)
+        }
+
+        let (id,) = query_as.fetch_one(self.db).await?;
+        Ok(id)
     }
 
     pub async fn read(&self, id: i64) -> sqlx::Result<E> {
-        S::read(self.db, id).await
+        let sql = S::TABLE.select("WHERE id=$1");
+        sqlx::query_as(&sql).bind(id).fetch_one(self.db).await
     }
 
     pub async fn list(&self) -> sqlx::Result<Vec<E>> {
-        S::list(self.db).await
+        let sql = S::TABLE.select("ORDER BY id");
+        sqlx::query_as(&sql).fetch_all(self.db).await
     }
 
+    // TODO: support update
+    // async fn update(db: &Db, id: i64, entity: E) -> sqlx::Result<i64>;
+
     pub async fn delete(&self, id: i64) -> sqlx::Result<u64> {
-        S::delete(self.db, id).await
+        let sql = S::TABLE.delete("WHERE id=$1");
+        Ok(sqlx::query(&sql)
+            .bind(id)
+            .execute(self.db)
+            .await?
+            .rows_affected())
     }
+
+    // TODO: support delete_all
 }

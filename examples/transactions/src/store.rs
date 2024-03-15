@@ -1,12 +1,12 @@
 use async_trait::async_trait;
-use miniorm::{Store, Table};
+use miniorm::{HasTable, Table};
 
 use crate::transaction::Transaction;
 
 pub struct TransactionStore;
 
 #[async_trait]
-impl Store<Transaction> for TransactionStore {
+impl HasTable<Transaction> for TransactionStore {
     const TABLE: Table = Table(
         "transaction",
         &[
