@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 use async_trait::async_trait;
 use itertools::Itertools;
 use sqlx::{
@@ -131,4 +133,54 @@ where
     }
 
     // TODO: support delete_all
+}
+
+pub struct NewStore<'d, E, S: Store<E>>
+where
+    S: Send,
+    E: for<'r> FromRow<'r, PgRow> + Send + Unpin + Bind + Sync,
+{
+    db: &'d Db,
+    entity: PhantomData<E>,
+    store: PhantomData<S>,
+}
+
+impl<'d, E, S: Store<E>> NewStore<'d, E, S>
+where
+    S: Send,
+    E: for<'r> FromRow<'r, PgRow> + Send + Unpin + Bind + Sync,
+{
+    pub fn new(db: &'d Db) -> Self {
+        let entity = PhantomData;
+        let store = PhantomData;
+        Self { db, entity, store }
+    }
+
+    pub async fn recreate_table(&self) -> sqlx::Result<()> {
+        S::recreate_table(self.db).await
+    }
+
+    pub async fn create_table(&self) -> sqlx::Result<PgQueryResult> {
+        S::create_table(self.db).await
+    }
+
+    pub async fn drop_table(&self) -> sqlx::Result<PgQueryResult> {
+        S::drop_table(self.db).await
+    }
+
+    pub async fn create(&self, entity: &E) -> sqlx::Result<i64> {
+        S::create(self.db, entity).await
+    }
+
+    pub async fn read(&self, id: i64) -> sqlx::Result<E> {
+        S::read(self.db, id).await
+    }
+
+    pub async fn list(&self) -> sqlx::Result<Vec<E>> {
+        S::list(self.db).await
+    }
+
+    pub async fn delete(&self, id: i64) -> sqlx::Result<u64> {
+        S::delete(self.db, id).await
+    }
 }

@@ -2,7 +2,7 @@ use std::error::Error;
 
 use async_trait::async_trait;
 use dotenv::dotenv;
-use miniorm::{Store, Table};
+use miniorm::{NewStore, Store, Table};
 use miniorm_macros::Bind;
 use sqlx::{FromRow, PgPool};
 
@@ -31,6 +31,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let url = std::env::var("DATABASE_URL").expect("missing DATABASE_URL env");
     let db = PgPool::connect(&url).await?;
+    let store = NewStore::<'_, Todo, TodoStore>::new(&db);
 
     let todo = Todo {
         description: "checkout miniorm".into(),
@@ -38,27 +39,27 @@ async fn main() -> Result<(), Box<dyn Error>> {
     };
 
     println!("Recreating table...");
-    TodoStore::recreate_table(&db).await?;
+    store.recreate_table().await?;
 
     println!("Inserting...");
-    let id = TodoStore::create(&db, &todo).await?;
+    let id = store.create(&todo).await?;
 
     println!("Retrieveing by id...");
-    let fetched = TodoStore::read(&db, id).await?;
+    let fetched = store.read(id).await?;
     assert_eq!(todo, fetched);
 
     println!("Listing all...");
-    let all = TodoStore::list(&db).await?;
+    let all = store.list().await?;
     assert_eq!(all.len(), 1);
     assert_eq!(&todo, &all[0]);
 
     println!("Deleting by id...");
-    let deleted = TodoStore::delete(&db, id).await?;
+    let deleted = store.delete(id).await?;
     assert_eq!(deleted, 1);
 
     println!("Checking delete successful");
     assert!(matches!(
-        TodoStore::read(&db, id).await,
+        store.read(id).await,
         Err(sqlx::Error::RowNotFound)
     ));
 

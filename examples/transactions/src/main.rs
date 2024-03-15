@@ -3,7 +3,7 @@ mod transaction;
 
 use dotenv::dotenv;
 use iso_currency::Currency;
-use miniorm::Store;
+use miniorm::NewStore;
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
 use sqlx::{types::chrono::NaiveDate, PgPool};
@@ -19,10 +19,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv()?;
 
     let url = std::env::var("DATABASE_URL").expect("missing DATABASE_URL env");
-    let pool = PgPool::connect(&url).await?;
+    let db = PgPool::connect(&url).await?;
+    let store = NewStore::<'_, Transaction, TransactionStore>::new(&db);
 
     println!("Recreating table...");
-    TransactionStore::recreate_table(&pool).await?;
+    store.recreate_table().await?;
 
     let aapl = Stock {
         ticker: Ticker("AAPL".into()),
@@ -42,24 +43,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     println!("Inserting...");
-    let id = TransactionStore::create(&pool, &tx).await?;
+    let id = store.create(&tx).await?;
 
     println!("Retrieveing by id...");
-    let fetched = TransactionStore::read(&pool, id).await?;
+    let fetched = store.read(id).await?;
     assert_eq!(tx, fetched);
 
     println!("Listing all...");
-    let all = TransactionStore::list(&pool).await?;
+    let all = store.list().await?;
     assert_eq!(all.len(), 1);
     assert_eq!(&tx, &all[0]);
 
     println!("Deleting by id...");
-    let deleted = TransactionStore::delete(&pool, id).await?;
+    let deleted = store.delete(id).await?;
     assert_eq!(deleted, 1);
 
     println!("Checking delete successful");
     assert!(matches!(
-        TransactionStore::read(&pool, id).await,
+        store.read(id).await,
         Err(sqlx::Error::RowNotFound)
     ));
 
