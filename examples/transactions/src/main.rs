@@ -1,9 +1,10 @@
 use dotenv::dotenv;
 use iso_currency::Currency;
+use miniorm::Schema;
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
 use serde::{Deserialize, Serialize};
-use sqlx::types::chrono::NaiveDate;
+use sqlx::{types::chrono::NaiveDate, FromRow};
 
 #[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub struct Ticker(pub String);
@@ -29,7 +30,7 @@ pub enum Operation {
     Withdrawal,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, sqlx::FromRow, miniorm::Schema)]
+#[derive(Clone, Debug, Eq, PartialEq, FromRow, Schema)]
 pub struct Transaction {
     #[column(DATE NOT NULL)]
     pub date: NaiveDate,
