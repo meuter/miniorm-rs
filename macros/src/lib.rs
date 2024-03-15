@@ -42,7 +42,7 @@ fn generate_has_table(input: DeriveInput) -> TokenStream {
     });
 
     quote! {
-        impl ::miniorm::traits::HasTable for #ident {
+        impl ::miniorm::traits::Schema for #ident {
             const TABLE: ::miniorm::Table = miniorm::Table(
                 #table,
                 &[ #(#table_entries)* ],
@@ -110,7 +110,7 @@ pub fn derive_bind(input: TokenStream) -> TokenStream {
     generate_bind(parse(input).unwrap())
 }
 
-#[proc_macro_derive(HasTable, attributes(column))]
+#[proc_macro_derive(Schema, attributes(column))]
 pub fn derive_has_table(input: TokenStream) -> TokenStream {
     generate_has_table(parse(input).unwrap())
 }

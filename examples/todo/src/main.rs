@@ -1,10 +1,4 @@
-use std::error::Error;
-
-use dotenv::dotenv;
-use miniorm::{CrudStore, HasTable, ToRow};
-use sqlx::{FromRow, PgPool};
-
-#[derive(Debug, ToRow, Clone, FromRow, Eq, PartialEq, HasTable)]
+#[derive(Debug, Clone, Eq, PartialEq, sqlx::FromRow, miniorm::Schema, miniorm::ToRow)]
 struct Todo {
     #[column(TEXT NOT NULL)]
     description: String,
@@ -13,12 +7,12 @@ struct Todo {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
-    dotenv().ok();
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    dotenv::dotenv().ok();
 
     let url = std::env::var("DATABASE_URL").expect("missing DATABASE_URL env");
-    let db = PgPool::connect(&url).await?;
-    let store = CrudStore::<'_, Todo>::new(&db);
+    let db = sqlx::PgPool::connect(&url).await?;
+    let store = miniorm::CrudStore::<'_, Todo>::new(&db);
 
     let todo = Todo {
         description: "checkout miniorm".into(),

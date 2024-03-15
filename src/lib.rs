@@ -8,7 +8,7 @@ use sqlx::{
 };
 use std::marker::PhantomData;
 
-pub use miniorm_macros::{HasTable, ToRow};
+pub use miniorm_macros::{Schema, ToRow};
 
 pub type Db = Pool<Postgres>;
 pub type TableName = &'static str;
@@ -26,7 +26,7 @@ pub mod traits {
             -> PgQueryAs<'q, O>;
     }
 
-    pub trait HasTable {
+    pub trait Schema {
         const TABLE: Table;
     }
 }
@@ -110,7 +110,7 @@ impl<'d, E> CrudStore<'d, E> {
 
 impl<'d, E> CrudStore<'d, E>
 where
-    E: traits::HasTable,
+    E: traits::Schema,
 {
     pub async fn recreate_table(&self) -> sqlx::Result<PgQueryResult> {
         self.drop_table().await?;
@@ -144,7 +144,7 @@ where
 
 impl<'d, E> CrudStore<'d, E>
 where
-    E: for<'r> FromRow<'r, PgRow> + traits::HasTable + Unpin + Send,
+    E: for<'r> FromRow<'r, PgRow> + traits::Schema + Unpin + Send,
 {
     pub async fn read(&self, id: i64) -> sqlx::Result<E> {
         let sql = E::TABLE.select("WHERE id=$1");
@@ -159,7 +159,7 @@ where
 
 impl<'d, E> CrudStore<'d, E>
 where
-    E: for<'r> FromRow<'r, PgRow> + traits::ToRow + traits::HasTable,
+    E: for<'r> FromRow<'r, PgRow> + traits::ToRow + traits::Schema,
 {
     pub async fn create(&self, entity: &E) -> sqlx::Result<i64> {
         let sql = E::TABLE.insert();
