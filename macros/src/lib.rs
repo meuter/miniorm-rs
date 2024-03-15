@@ -2,7 +2,57 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse, DeriveInput, Meta, MetaList};
 
-fn generate_bind_implementation(input: DeriveInput) -> TokenStream {
+fn generate_has_table(input: DeriveInput) -> TokenStream {
+    let ident = input.ident;
+    let table = ident.to_string().to_lowercase();
+
+    let fields = match input.data {
+        syn::Data::Struct(data) => data.fields,
+        syn::Data::Enum(_) => panic!("only structs are supported"),
+        syn::Data::Union(_) => panic!("only structs are supported"),
+    };
+
+    let table_entries = fields.into_iter().map(|field| {
+        let field_ident = field.ident.unwrap();
+        let field_str = field_ident.to_string();
+
+        let col_type = field
+            .attrs
+            .into_iter()
+            .filter_map(|attr| {
+                if let Meta::List(meta_list) = &attr.meta {
+                    let MetaList { path, tokens, .. } = meta_list;
+                    let is_column = path.segments.iter().any(|seg| seg.ident == "column");
+                    if is_column {
+                        let col_type = tokens.to_string();
+                        Some(col_type)
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            })
+            .next()
+            .expect("missing `#[column(<type>)]`");
+
+        quote! {
+            (#field_str, #col_type),
+        }
+    });
+
+    quote! {
+        impl ::miniorm::HasTable for #ident {
+            const TABLE: ::miniorm::Table = miniorm::Table(
+                #table,
+                &[ #(#table_entries)* ],
+            );
+        }
+    }
+    .into()
+}
+
+fn generate_bind(input: DeriveInput) -> TokenStream {
     let ident = input.ident;
 
     let fields = match input.data {
@@ -57,5 +107,10 @@ fn generate_bind_implementation(input: DeriveInput) -> TokenStream {
 
 #[proc_macro_derive(Bind)]
 pub fn derive_bind(input: TokenStream) -> TokenStream {
-    generate_bind_implementation(parse(input).unwrap())
+    generate_bind(parse(input).unwrap())
+}
+
+#[proc_macro_derive(HasTable, attributes(column))]
+pub fn derive_has_table(input: TokenStream) -> TokenStream {
+    generate_has_table(parse(input).unwrap())
 }

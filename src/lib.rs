@@ -1,6 +1,3 @@
-use std::marker::PhantomData;
-
-use async_trait::async_trait;
 use itertools::Itertools;
 use sqlx::{
     database::HasArguments,
@@ -9,6 +6,7 @@ use sqlx::{
     query::QueryAs,
     Pool, Postgres,
 };
+use std::marker::PhantomData;
 
 // TODO: generalize to sqlite or mysql
 pub type Db = Pool<Postgres>;
@@ -19,11 +17,11 @@ pub type Column = (ColunmName, ColumnType);
 pub type Columns = &'static [Column];
 pub type PgQueryAs<'q, O> = QueryAs<'q, Postgres, O, <Postgres as HasArguments<'q>>::Arguments>;
 
+// TODO: combine these two along with FromRow
 pub trait Bind {
     fn bind<'q, O>(&self, query: PgQueryAs<'q, O>, column_name: ColunmName) -> PgQueryAs<'q, O>;
 }
 
-#[async_trait]
 pub trait HasTable {
     const TABLE: Table;
 }

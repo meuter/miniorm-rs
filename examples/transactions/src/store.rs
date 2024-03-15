@@ -1,9 +1,7 @@
-use async_trait::async_trait;
 use miniorm::{HasTable, Table};
 
 use crate::transaction::Transaction;
 
-#[async_trait]
 impl HasTable for Transaction {
     const TABLE: Table = Table(
         "transaction",

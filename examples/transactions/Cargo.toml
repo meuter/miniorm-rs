@@ -7,7 +7,6 @@ edition = "2021"
 sqlx = "0.7.4"
 miniorm-macros = { path = "../../macros" }
 miniorm = { path = "../../" }
-async-trait = "0.1.77"
 dotenv = "0.15.0"
 tokio = { version = "1.36.0", features = ["full"] }
 iso_currency = { version = "0.4.4", features = ["with-serde"] }

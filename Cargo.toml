@@ -4,12 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-async-trait = "0.1.77"
 dotenv = "0.15.0"
 iso_currency = { version = "0.4.4", features = ["serde", "with-serde"] }
 itertools = "0.12.1"
-oxydized-money = "0.3.0"
-oxydized-money-macros = "0.2.0"
 rust_decimal = "1.34.3"
 rust_decimal_macros = "1.34.2"
 serde = { version = "1.0.197", features = ["derive"] }

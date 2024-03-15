@@ -1,26 +1,16 @@
 use std::error::Error;
 
-use async_trait::async_trait;
 use dotenv::dotenv;
-use miniorm::{CrudStore, HasTable, Table};
-use miniorm_macros::Bind;
+use miniorm::CrudStore;
+use miniorm_macros::{Bind, HasTable};
 use sqlx::{FromRow, PgPool};
 
-#[derive(Debug, Bind, Clone, FromRow, Eq, PartialEq)]
+#[derive(Debug, Bind, Clone, FromRow, Eq, PartialEq, HasTable)]
 struct Todo {
+    #[column(TEXT NOT NULL)]
     description: String,
+    #[column(BOOLEAN NOT NULL DEFAULT false)]
     done: bool,
-}
-
-#[async_trait]
-impl HasTable for Todo {
-    const TABLE: Table = Table(
-        "todo",
-        &[
-            ("description", "TEXT NOT NULL"),
-            ("done", "BOOLEAN NOT NULL"),
-        ],
-    );
 }
 
 #[tokio::main]
