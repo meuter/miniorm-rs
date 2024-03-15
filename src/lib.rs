@@ -45,8 +45,8 @@
 //! ```
 //!
 //! For more complete examples, see:
-//! - [todo example](../src/miniorm_example_todo/main.rs.html) for a simple example.
-//! - [stock transaction example](../src/miniorm_example_transactions/main.rs.html)
+//! - [todo example](https://docs.rs/crate/miniorm-example-todo/latest/source/src/main.rs) for a simple example.
+//! - [stock transaction example](https://docs.rs/crate/miniorm-example-transactions/latest/source/src/main.rs)
 //!   for a more complex example, where certain fields are stored as
 //!   [`JSONB`](https://www.postgresql.org/docs/current/datatype-json.html) column
 //!   using [`serde_json`].
