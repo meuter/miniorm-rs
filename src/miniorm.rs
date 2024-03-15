@@ -20,9 +20,9 @@ pub trait Bind {
     fn bind<'q, O>(&self, query: PgQueryAs<'q, O>, column_name: ColunmName) -> PgQueryAs<'q, O>;
 }
 
-pub struct Schema(pub TableName, pub Columns);
+pub struct Table(pub TableName, pub Columns);
 
-impl Schema {
+impl Table {
     fn table(&self) -> TableName {
         self.0
     }
@@ -73,11 +73,11 @@ impl Schema {
 }
 
 #[async_trait]
-pub trait Table<E>
+pub trait Store<E>
 where
     E: for<'r> FromRow<'r, PgRow> + Send + Unpin + Bind + Sync,
 {
-    const SCHEMA: Schema;
+    const TABLE: Table;
 
     async fn recreate(db: &Db) -> sqlx::Result<()> {
         Self::drop_table(db).await?;
@@ -86,20 +86,20 @@ where
     }
 
     async fn create_table(db: &Db) -> sqlx::Result<PgQueryResult> {
-        let sql = Self::SCHEMA.create_table();
+        let sql = Self::TABLE.create_table();
         sqlx::query(&sql).execute(db).await
     }
 
     async fn drop_table(db: &Db) -> sqlx::Result<PgQueryResult> {
-        let sql = Self::SCHEMA.drop_table();
+        let sql = Self::TABLE.drop_table();
         sqlx::query(&sql).execute(db).await
     }
 
     async fn create(db: &Db, entity: &E) -> sqlx::Result<i64> {
-        let sql = Self::SCHEMA.insert();
+        let sql = Self::TABLE.insert();
         let mut query_as = sqlx::query_as(&sql);
 
-        for col in Self::SCHEMA.columns().iter().map(|col| col.0) {
+        for col in Self::TABLE.columns().iter().map(|col| col.0) {
             query_as = entity.bind(query_as, col)
         }
 
@@ -108,19 +108,19 @@ where
     }
 
     async fn read(db: &Db, id: i64) -> sqlx::Result<E> {
-        let sql = Self::SCHEMA.select("WHERE id=$1");
+        let sql = Self::TABLE.select("WHERE id=$1");
         sqlx::query_as(&sql).bind(id).fetch_one(db).await
     }
 
     async fn list(db: &Db) -> sqlx::Result<Vec<E>> {
-        let sql = Self::SCHEMA.select("ORDER BY id");
+        let sql = Self::TABLE.select("ORDER BY id");
         sqlx::query_as(&sql).fetch_all(db).await
     }
 
     async fn update(db: &Db, id: i64, entity: E) -> sqlx::Result<i64>;
 
     async fn delete(db: &Db, id: i64) -> sqlx::Result<u64> {
-        let sql = Self::SCHEMA.delete("WHERE id=$1");
+        let sql = Self::TABLE.delete("WHERE id=$1");
         Ok(sqlx::query(&sql)
             .bind(id)
             .execute(db)

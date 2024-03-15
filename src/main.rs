@@ -10,9 +10,9 @@ use rust_decimal_macros::dec;
 use sqlx::{types::chrono::NaiveDate, PgPool};
 
 use crate::{
-    miniorm::Table,
+    miniorm::Store,
     model::{Instrument, Operation, Stock, Ticker},
-    store::TransactionTable,
+    store::TransactionStore,
 };
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
@@ -24,7 +24,7 @@ async fn main() -> Result<()> {
     let url = std::env::var("DATABASE_URL").expect("missing DATABASE_URL env");
     let pool = PgPool::connect(&url).await?;
 
-    TransactionTable::recreate(&pool).await?;
+    TransactionStore::recreate(&pool).await?;
 
     let aapl = Stock {
         ticker: Ticker("AAPL".into()),
@@ -43,18 +43,18 @@ async fn main() -> Result<()> {
         exchange_rate: dec!(0.9),
     };
 
-    let id = TransactionTable::create(&pool, &tx).await?;
-    let fetched = TransactionTable::read(&pool, id).await?;
+    let id = TransactionStore::create(&pool, &tx).await?;
+    let fetched = TransactionStore::read(&pool, id).await?;
     assert_eq!(tx, fetched);
 
-    let all = TransactionTable::list(&pool).await?;
+    let all = TransactionStore::list(&pool).await?;
     assert_eq!(vec![tx], all);
 
-    let deleted = TransactionTable::delete(&pool, id).await?;
+    let deleted = TransactionStore::delete(&pool, id).await?;
     assert_eq!(deleted, 1);
 
     assert!(matches!(
-        TransactionTable::read(&pool, id).await,
+        TransactionStore::read(&pool, id).await,
         Err(sqlx::Error::RowNotFound)
     ));
 

@@ -1,18 +1,18 @@
 use std::str::FromStr;
 
 use crate::{
-    miniorm::{Bind, ColunmName, Db, PgQueryAs, Schema, Table},
+    miniorm::{Bind, ColunmName, Db, PgQueryAs, Store, Table},
     model::{Operation, Transaction},
 };
 use async_trait::async_trait;
 use iso_currency::Currency;
 use sqlx::{postgres::PgRow, FromRow, Row};
 
-pub struct TransactionTable;
+pub struct TransactionStore;
 
 #[async_trait]
-impl Table<Transaction> for TransactionTable {
-    const SCHEMA: Schema = Schema(
+impl Store<Transaction> for TransactionStore {
+    const TABLE: Table = Table(
         "transaction",
         &[
             ("date", "DATE NOT NULL"),
