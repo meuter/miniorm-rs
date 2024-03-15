@@ -798,6 +798,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "miniorm-example-transactions"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "dotenv",
+ "iso_currency",
+ "miniorm",
+ "miniorm-macros",
+ "rust_decimal",
+ "rust_decimal_macros",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tokio",
+]
+
+[[package]]
 name = "miniorm-macros"
 version = "0.1.0"
 dependencies = [

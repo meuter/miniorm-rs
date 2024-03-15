@@ -27,4 +27,4 @@ miniorm-macros = { path = "./macros" }
 
 
 [workspace]
-members = ["examples/todo", "macros"]
+members = ["examples/transactions", "examples/todo", "macros"]

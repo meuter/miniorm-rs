@@ -1,8 +1,7 @@
-use crate::{
-    miniorm::{Db, Store, Table},
-    model::Transaction,
-};
 use async_trait::async_trait;
+use miniorm::{Store, Table};
+
+use crate::transaction::Transaction;
 
 pub struct TransactionStore;
 
@@ -22,8 +21,4 @@ impl Store<Transaction> for TransactionStore {
             ("exchange_rate", "DECIMAL NOT NULL"),
         ],
     );
-
-    async fn update(_db: &Db, _id: i64, _entity: Transaction) -> sqlx::Result<i64> {
-        todo!()
-    }
 }

@@ -1,0 +1,17 @@
+[package]
+name = "miniorm-example-transactions"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+sqlx = "0.7.4"
+miniorm-macros = { path = "../../macros" }
+miniorm = { path = "../../" }
+async-trait = "0.1.77"
+dotenv = "0.15.0"
+tokio = { version = "1.36.0", features = ["full"] }
+iso_currency = { version = "0.4.4", features = ["with-serde"] }
+rust_decimal = "1.34.3"
+serde = { version = "1.0.197", features = ["derive"] }
+serde_json = "1.0.114"
+rust_decimal_macros = "1.34.2"
