@@ -1,5 +1,10 @@
 # miniorm
 
+[![Build](https://github.com/meuter/miniorm/actions/workflows/build.yml/badge.svg)](https://github.com/meuter/miniorm/actions/workflows/build.yml)
+[![Test](https://github.com/meuter/miniorm/actions/workflows/test.yml/badge.svg)](https://github.com/meuter/miniorm/actions/workflows/test.yml)
+[![Clippy](https://github.com/meuter/miniorm/actions/workflows/clippy.yml/badge.svg)](https://github.com/meuter/miniorm/actions/workflows/clippy.yml)
+[![Doc](https://github.com/meuter/miniorm/actions/workflows/docs.yml/badge.svg)](https://github.com/meuter/miniorm/actions/workflows/docs.yml)
+
 The `miniorm` crate provides a *very* simple
 [ORM](https://en.wikipedia.org/wiki/Object%E2%80%93relational_mapping)
 on top of [`sqlx`](https://docs.rs/sqlx/latest/sqlx/).
