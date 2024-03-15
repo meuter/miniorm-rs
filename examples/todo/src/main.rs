@@ -1,11 +1,10 @@
 use std::error::Error;
 
 use dotenv::dotenv;
-use miniorm::CrudStore;
-use miniorm_macros::{Bind, HasTable};
+use miniorm::{CrudStore, HasTable, ToRow};
 use sqlx::{FromRow, PgPool};
 
-#[derive(Debug, Bind, Clone, FromRow, Eq, PartialEq, HasTable)]
+#[derive(Debug, ToRow, Clone, FromRow, Eq, PartialEq, HasTable)]
 struct Todo {
     #[column(TEXT NOT NULL)]
     description: String,

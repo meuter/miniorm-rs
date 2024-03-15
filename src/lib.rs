@@ -8,6 +8,8 @@ use sqlx::{
 };
 use std::marker::PhantomData;
 
+pub use miniorm_macros::{HasTable, ToRow};
+
 // TODO: generalize to sqlite or mysql
 pub type Db = Pool<Postgres>;
 pub type TableName = &'static str;
@@ -17,13 +19,17 @@ pub type Column = (ColunmName, ColumnType);
 pub type Columns = &'static [Column];
 pub type PgQueryAs<'q, O> = QueryAs<'q, Postgres, O, <Postgres as HasArguments<'q>>::Arguments>;
 
-// TODO: combine these two along with FromRow
-pub trait Bind {
-    fn bind<'q, O>(&self, query: PgQueryAs<'q, O>, column_name: ColunmName) -> PgQueryAs<'q, O>;
-}
+pub mod traits {
+    use super::*;
 
-pub trait HasTable {
-    const TABLE: Table;
+    pub trait ToRow {
+        fn bind<'q, O>(&self, query: PgQueryAs<'q, O>, column_name: ColunmName)
+            -> PgQueryAs<'q, O>;
+    }
+
+    pub trait HasTable {
+        const TABLE: Table;
+    }
 }
 
 pub struct Table(pub TableName, pub Columns);
@@ -80,7 +86,7 @@ impl Table {
 
 pub struct CrudStore<'d, E>
 where
-    E: for<'r> FromRow<'r, PgRow> + Send + Unpin + Bind + Sync + HasTable,
+    E: for<'r> FromRow<'r, PgRow> + Send + Unpin + traits::ToRow + Sync + traits::HasTable,
 {
     db: &'d Db,
     entity: PhantomData<E>,
@@ -88,7 +94,7 @@ where
 
 impl<'d, E> CrudStore<'d, E>
 where
-    E: for<'r> FromRow<'r, PgRow> + Send + Unpin + Bind + Sync + HasTable,
+    E: for<'r> FromRow<'r, PgRow> + Send + Unpin + traits::ToRow + Sync + traits::HasTable,
 {
     pub fn new(db: &'d Db) -> Self {
         let entity = PhantomData;

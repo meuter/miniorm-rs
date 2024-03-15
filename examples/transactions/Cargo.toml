@@ -4,8 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-sqlx = "0.7.4"
-miniorm-macros = { path = "../../macros" }
+sqlx = { version = "0.7.4", features = [
+    "chrono",
+    "rust_decimal",
+    "runtime-tokio",
+] }
 miniorm = { path = "../../" }
 dotenv = "0.15.0"
 tokio = { version = "1.36.0", features = ["full"] }

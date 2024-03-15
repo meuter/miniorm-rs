@@ -42,7 +42,7 @@ fn generate_has_table(input: DeriveInput) -> TokenStream {
     });
 
     quote! {
-        impl ::miniorm::HasTable for #ident {
+        impl ::miniorm::traits::HasTable for #ident {
             const TABLE: ::miniorm::Table = miniorm::Table(
                 #table,
                 &[ #(#table_entries)* ],
@@ -88,7 +88,7 @@ fn generate_bind(input: DeriveInput) -> TokenStream {
     });
 
     quote! {
-        impl ::miniorm::Bind for #ident {
+        impl ::miniorm::traits::ToRow for #ident {
             fn bind<'q, O>(
                 &self,
                 query: ::miniorm::PgQueryAs<'q, O>,
@@ -105,7 +105,7 @@ fn generate_bind(input: DeriveInput) -> TokenStream {
     .into()
 }
 
-#[proc_macro_derive(Bind)]
+#[proc_macro_derive(ToRow)]
 pub fn derive_bind(input: TokenStream) -> TokenStream {
     generate_bind(parse(input).unwrap())
 }

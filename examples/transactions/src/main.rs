@@ -1,7 +1,6 @@
 use dotenv::dotenv;
 use iso_currency::Currency;
-use miniorm::CrudStore;
-use miniorm_macros::{Bind, HasTable};
+use miniorm::{CrudStore, HasTable, ToRow};
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
 use serde::{Deserialize, Serialize};
@@ -32,7 +31,7 @@ pub enum Operation {
     Withdrawal,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, FromRow, Bind, HasTable)]
+#[derive(Clone, Debug, Eq, PartialEq, FromRow, ToRow, HasTable)]
 pub struct Transaction {
     #[column(DATE NOT NULL)]
     pub date: NaiveDate,
