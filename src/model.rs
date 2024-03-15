@@ -2,7 +2,6 @@ use iso_currency::Currency;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use sqlx::types::chrono::NaiveDate;
-use strum::{Display, EnumString};
 
 #[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub struct Ticker(pub String);
@@ -19,7 +18,7 @@ pub enum Instrument {
     Stock(Stock),
 }
 
-#[derive(Copy, Clone, Debug, sqlx::Type, Eq, PartialEq, Display, EnumString)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Operation {
     Buy,
     Sell,

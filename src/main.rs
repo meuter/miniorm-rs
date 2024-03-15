@@ -46,9 +46,10 @@ async fn main() -> Result<()> {
     let id = TransactionStore::create(&pool, &tx).await?;
     let fetched = TransactionStore::read(&pool, id).await?;
     assert_eq!(tx, fetched);
-
+    //
     let all = TransactionStore::list(&pool).await?;
-    assert_eq!(vec![tx], all);
+    assert_eq!(all.len(), 1);
+    assert_eq!(&tx, &all[0]);
 
     let deleted = TransactionStore::delete(&pool, id).await?;
     assert_eq!(deleted, 1);
@@ -57,6 +58,8 @@ async fn main() -> Result<()> {
         TransactionStore::read(&pool, id).await,
         Err(sqlx::Error::RowNotFound)
     ));
+
+    TransactionStore::create(&pool, &tx).await?;
 
     Ok(())
 }
