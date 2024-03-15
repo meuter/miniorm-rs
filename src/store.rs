@@ -1,12 +1,22 @@
 use std::str::FromStr;
 
 use crate::{
-    miniorm::{Columns, Db, Table, TableName},
+    miniorm::{Columns, ColunmName, Db, Table, TableName},
     model::{Operation, Transaction},
 };
 use async_trait::async_trait;
 use iso_currency::Currency;
-use sqlx::{postgres::PgRow, FromRow, Row};
+use sqlx::{database::HasArguments, postgres::PgRow, query::QueryAs, FromRow, Postgres, Row};
+
+pub type PgQueryAs<'q, O> = QueryAs<'q, Postgres, O, <Postgres as HasArguments<'q>>::Arguments>;
+
+pub trait Bind {
+    fn bind_column<'q, O>(
+        &self,
+        query: PgQueryAs<'q, O>,
+        column_name: ColunmName,
+    ) -> PgQueryAs<'q, O>;
+}
 
 impl FromRow<'_, PgRow> for Transaction {
     fn from_row(row: &PgRow) -> sqlx::Result<Self> {
@@ -21,6 +31,20 @@ impl FromRow<'_, PgRow> for Transaction {
             currency: Currency::from_code(row.try_get("currency")?).unwrap(),
             exchange_rate: row.try_get("exchange_rate")?,
         })
+    }
+}
+
+impl Bind for Transaction {
+    fn bind_column<'q, O>(
+        &self,
+        query: PgQueryAs<'q, O>,
+        column_name: ColunmName,
+    ) -> PgQueryAs<'q, O> {
+        match column_name {
+            "date" => query.bind(self.date),
+            "unit_price" => query.bind(self.unit_price),
+            _ => query,
+        }
     }
 }
 
@@ -43,7 +67,7 @@ impl Table<Transaction> for TransactionTable {
     ];
 
     async fn add(db: &Db, tx: &Transaction) -> sqlx::Result<i64> {
-        let (id,) = sqlx::query_as(
+        let query_as = sqlx::query_as(
             r#"
                 INSERT INTO transaction (
                     date,
@@ -59,18 +83,20 @@ impl Table<Transaction> for TransactionTable {
                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
                 RETURNING id
             "#,
-        )
-        .bind(tx.date)
-        .bind(format!("{}", tx.operation))
-        .bind(serde_json::to_string(&tx.instrument).unwrap())
-        .bind(tx.quantity)
-        .bind(tx.unit_price)
-        .bind(tx.taxes)
-        .bind(tx.fees)
-        .bind(tx.currency.code())
-        .bind(tx.exchange_rate)
-        .fetch_one(db)
-        .await?;
+        );
+
+        let (id,) = tx
+            .bind_column(query_as, "date")
+            .bind(format!("{}", tx.operation))
+            .bind(serde_json::to_string(&tx.instrument).unwrap())
+            .bind(tx.quantity)
+            .bind(tx.unit_price)
+            .bind(tx.taxes)
+            .bind(tx.fees)
+            .bind(tx.currency.code())
+            .bind(tx.exchange_rate)
+            .fetch_one(db)
+            .await?;
         Ok(id)
     }
 

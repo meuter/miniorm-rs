@@ -4,7 +4,9 @@ use sqlx::{postgres::PgRow, prelude::FromRow, Pool, Postgres};
 
 pub type Db = Pool<Postgres>;
 pub type TableName = &'static str;
-pub type Column = (&'static str, &'static str);
+pub type ColunmName = &'static str;
+pub type ColumnType = &'static str;
+pub type Column = (ColunmName, ColumnType);
 pub type Columns = &'static [Column];
 
 #[async_trait]
