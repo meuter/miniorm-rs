@@ -45,21 +45,19 @@ where
         sqlx::query(&sql).execute(self.db).await
     }
 
-    ///  the table associated with the entity's [`Schema`]
+    /// Drops the table associated with the entity's [`Schema`]
     pub async fn drop_table(&self) -> sqlx::Result<PgQueryResult> {
         let sql = E::drop_table();
         sqlx::query(&sql).execute(self.db).await
     }
 
-    pub async fn delete(&self, id: i64) -> sqlx::Result<u64> {
+    /// Delete the object of type `E` corresponding to the provided `id`
+    pub async fn delete(&self, id: i64) -> sqlx::Result<PgQueryResult> {
         let sql = E::delete("WHERE id=$1");
-        Ok(sqlx::query(&sql)
-            .bind(id)
-            .execute(self.db)
-            .await?
-            .rows_affected())
+        sqlx::query(&sql).bind(id).execute(self.db).await
     }
 
+    /// Delete all objects of type E
     pub async fn delete_all(&self) -> sqlx::Result<u64> {
         let sql = E::delete("");
         Ok(sqlx::query(&sql).execute(self.db).await?.rows_affected())

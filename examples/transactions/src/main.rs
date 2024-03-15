@@ -103,8 +103,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     assert_eq!(&tx, &all[0]);
 
     println!("Deleting by id...");
-    let deleted = store.delete(id).await?;
-    assert_eq!(deleted, 1);
+    let res = store.delete(id).await?;
+    assert_eq!(res.rows_affected(), 1);
 
     println!("Checking delete successful");
     assert!(matches!(
