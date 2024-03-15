@@ -2,7 +2,7 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{DeriveInput, Meta, MetaList};
 
-/// Derive macro to automatically derive the [`Schema`](trait::Schema) trait.
+/// Derive macro to automatically derive the `Schema` trait.
 #[proc_macro_derive(Schema, attributes(column))]
 pub fn derive_schema(input: TokenStream) -> TokenStream {
     let input: DeriveInput = syn::parse(input).unwrap();

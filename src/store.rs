@@ -41,13 +41,13 @@ where
 
     /// Creates the table associated with the entity's [`Schema`]
     pub async fn create_table(&self) -> sqlx::Result<PgQueryResult> {
-        let sql = E::create_table();
+        let sql = E::create_table_stmt();
         sqlx::query(&sql).execute(self.db).await
     }
 
     /// Drops the table associated with the entity's [`Schema`]
     pub async fn drop_table(&self) -> sqlx::Result<PgQueryResult> {
-        let sql = E::drop_table();
+        let sql = E::drop_table_stmt();
         sqlx::query(&sql).execute(self.db).await
     }
 
@@ -68,11 +68,13 @@ impl<'d, E> CrudStore<'d, E>
 where
     E: for<'r> FromRow<'r, PgRow> + Schema + Unpin + Send,
 {
+    /// Reads and returns an object from the database
     pub async fn read(&self, id: i64) -> sqlx::Result<E> {
         let sql = E::select("WHERE id=$1");
         sqlx::query_as(&sql).bind(id).fetch_one(self.db).await
     }
 
+    /// Lists and return all object from the database
     pub async fn list(&self) -> sqlx::Result<Vec<E>> {
         let sql = E::select("ORDER BY id");
         sqlx::query_as(&sql).fetch_all(self.db).await
@@ -83,8 +85,9 @@ impl<'d, E> CrudStore<'d, E>
 where
     E: for<'r> FromRow<'r, PgRow> + Schema,
 {
+    /// Create an object in the database and returns its `id`.
     pub async fn create(&self, entity: &E) -> sqlx::Result<i64> {
-        let sql = E::insert();
+        let sql = E::insert_stmt();
         let mut query = sqlx::query_as(&sql);
 
         for col in E::COLUMNS.iter().map(|col| col.0) {
@@ -95,6 +98,7 @@ where
         Ok(id)
     }
 
+    /// Update an object in the database and returns its `id`.
     pub async fn update(&self, id: i64, entity: &E) -> sqlx::Result<i64> {
         let sql = E::update();
         let mut query = sqlx::query_as(&sql);

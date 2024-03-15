@@ -1,10 +1,39 @@
-#[derive(Debug, Clone, Eq, PartialEq, sqlx::FromRow, miniorm::Schema)]
+use miniorm::Schema;
+use sqlx::FromRow;
+
+/// A todo including a `description` and a `done` flag
+#[derive(Debug, Clone, Eq, PartialEq, FromRow, Schema)]
 struct Todo {
     #[column(TEXT NOT NULL)]
     description: String,
 
     #[column(BOOLEAN NOT NULL DEFAULT false)]
     done: bool,
+}
+
+struct Todo2 {
+    description: String,
+    done: bool,
+}
+
+impl miniorm::traits::Schema for Todo2 {
+    const TABLE_NAME: &'static str = "todo";
+    const COLUMNS: &'static [(&'static str, &'static str)] = &[
+        ("description", "TEXT NOT NULL"),
+        ("done", "BOOLEAN NOT NULL"),
+    ];
+
+    fn bind<'q, O>(
+        &self,
+        query: miniorm::traits::Query<'q, O>,
+        column_name: &'static str,
+    ) -> miniorm::traits::Query<'q, O> {
+        match column_name {
+            "description" => query.bind(self.description.clone()),
+            "done" => query.bind(self.done),
+            _ => query,
+        }
+    }
 }
 
 #[tokio::main]
