@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use crate::{
-    miniorm::{Bind, Columns, ColunmName, Db, PgQueryAs, Table, TableName},
+    miniorm::{Bind, ColunmName, Db, PgQueryAs, Schema, Table},
     model::{Operation, Transaction},
 };
 use async_trait::async_trait;
@@ -12,18 +12,20 @@ pub struct TransactionTable;
 
 #[async_trait]
 impl Table<Transaction> for TransactionTable {
-    const TABLE_NAME: TableName = "transaction";
-    const COLUMNS: Columns = &[
-        ("date", "DATE NOT NULL"),
-        ("operation", "VARCHAR(10) NOT NULL"),
-        ("instrument", "VARCHAR(50) NOT NULL"),
-        ("quantity", "DECIMAL NOT NULL"),
-        ("unit_price", "DECIMAL NOT NULL"),
-        ("taxes", "DECIMAL NOT NULL"),
-        ("fees", "DECIMAL NOT NULL"),
-        ("currency", "VARCHAR(3) NOT NULL"),
-        ("exchange_rate", "DECIMAL NOT NULL"),
-    ];
+    const SCHEMA: Schema = Schema(
+        "transaction",
+        &[
+            ("date", "DATE NOT NULL"),
+            ("operation", "VARCHAR(10) NOT NULL"),
+            ("instrument", "VARCHAR(50) NOT NULL"),
+            ("quantity", "DECIMAL NOT NULL"),
+            ("unit_price", "DECIMAL NOT NULL"),
+            ("taxes", "DECIMAL NOT NULL"),
+            ("fees", "DECIMAL NOT NULL"),
+            ("currency", "VARCHAR(3) NOT NULL"),
+            ("exchange_rate", "DECIMAL NOT NULL"),
+        ],
+    );
 
     async fn update(_db: &Db, _id: i64, _entity: Transaction) -> sqlx::Result<i64> {
         todo!()
