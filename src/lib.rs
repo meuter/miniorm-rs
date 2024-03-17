@@ -49,7 +49,7 @@
 //! - [stock transaction example](https://docs.rs/crate/miniorm-example-transactions/latest/source/src/main.rs)
 //!   for a more complex example, where certain fields are stored as
 //!   [`JSONB`](https://www.postgresql.org/docs/current/datatype-json.html) column
-//!   using [`serde_json`].
+//!   using [`serde_json`](https://docs.rs/serde_json/latest/serde_json/).
 
 mod store;
 mod with_id;

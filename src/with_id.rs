@@ -1,8 +1,14 @@
 use sqlx::{postgres::PgRow, FromRow, Row};
 
-/// `WithId` is a wrapper of struct that provides an
+/// [`WithId`] is a wrapper of struct that provides an
 /// additional id field which is used in the database
 /// to identify the entity.
+///
+/// [`WithId`] provides some blanket implementation
+/// of common traits provided that the underlying
+/// type implements these traits:
+/// - [`Debug`] and [`Clone`]
+/// - [`Eq`] and [`PartialEq`]
 pub struct WithId<E> {
     /// the wrapped entity
     pub inner: E,
@@ -92,6 +98,7 @@ impl<E: std::fmt::Debug> std::fmt::Debug for WithId<E> {
     }
 }
 
+#[cfg(feature = "serde")]
 mod private {
     use super::WithId;
     use serde::{
@@ -166,6 +173,7 @@ mod private {
     }
 }
 
+#[cfg(feature = "serde")]
 impl<E: serde::Serialize> serde::Serialize for WithId<E> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -179,6 +187,7 @@ impl<E: serde::Serialize> serde::Serialize for WithId<E> {
     }
 }
 
+#[cfg(feature = "serde")]
 impl<'de, E: serde::Deserialize<'de>> serde::Deserialize<'de> for WithId<E> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -191,8 +200,7 @@ impl<'de, E: serde::Deserialize<'de>> serde::Deserialize<'de> for WithId<E> {
 
 #[cfg(test)]
 mod test {
-    use super::*;
-    use serde::{Deserialize, Serialize};
+    use crate::WithId;
 
     #[test]
     fn is_clone_if_inner_is_clone() {
@@ -217,27 +225,33 @@ mod test {
         assert_ne!(left, right);
     }
 
-    #[test]
-    fn is_serialize_if_inner_is_serialize() {
-        #[derive(Serialize)]
-        struct Foo {
-            x: u32,
+    #[cfg(feature = "serde")]
+    mod serde {
+        use crate::WithId;
+        use serde::{Deserialize, Serialize};
+
+        #[test]
+        fn is_serialize_if_inner_is_serialize() {
+            #[derive(Serialize)]
+            struct Foo {
+                x: u32,
+            }
+
+            let with_id = WithId::new(Foo { x: 420 }, 69);
+            assert_eq!(
+                serde_json::to_string(&with_id).unwrap(),
+                r#"{"id":69,"inner":{"x":420}}"#
+            );
         }
 
-        let with_id = WithId::new(Foo { x: 420 }, 69);
-        assert_eq!(
-            serde_json::to_string(&with_id).unwrap(),
-            r#"{"id":69,"inner":{"x":420}}"#
-        );
-    }
+        #[test]
+        fn is_deserialize_if_inner_is_deserialize() {
+            #[derive(Deserialize)]
+            struct Foo(u32);
 
-    #[test]
-    fn is_deserialize_if_inner_is_deserialize() {
-        #[derive(Deserialize)]
-        struct Foo(u32);
-
-        let with_id: WithId<Foo> = serde_json::from_str(r#"{"id":69,"inner":420}"#).unwrap();
-        assert_eq!(with_id.inner.0, 420);
-        assert_eq!(with_id.id, 69);
+            let with_id: WithId<Foo> = serde_json::from_str(r#"{"id":69,"inner":420}"#).unwrap();
+            assert_eq!(with_id.inner.0, 420);
+            assert_eq!(with_id.id, 69);
+        }
     }
 }
