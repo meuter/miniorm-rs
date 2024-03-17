@@ -18,7 +18,7 @@
 //! of the table that should be used for a given entity (i.e. `struct`).
 //!
 //! Any struct that implements the [`FromRow`](sqlx::FromRow) and [`Schema`] traits can
-//! be used to create a [`CrudStore`] that provide the so-called "CRUD" operations:
+//! be used to create a [`Store`] that provide the so-called "CRUD" operations:
 //! - (C)reate
 //! - (R)ead
 //! - (U)pdate
@@ -57,5 +57,5 @@ mod with_id;
 /// module providing the [`Schema`] trait.
 pub mod traits;
 pub use miniorm_macros::Schema;
-pub use store::CrudStore;
+pub use store::Store;
 pub use with_id::WithId;

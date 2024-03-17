@@ -26,7 +26,7 @@ that can also be automatically derived to describe the schema
 of the table that should be used for a given entity (i.e. `struct`).
 
 Any struct that implements the `FromRow` and `Schema` traits can be used 
-to create a `CrudStore` that provide the so-called "CRUD" operations:
+to create a `Store` that provide the so-called "CRUD" operations:
 - (C)reate
 - (R)ead
 - (U)pdate

@@ -17,7 +17,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let url = std::env::var("DATABASE_URL").expect("missing DATABASE_URL env");
     let db = sqlx::PgPool::connect(&url).await?;
-    let store = miniorm::CrudStore::<Todo>::new(db.clone());
+    let store = miniorm::Store::<Todo>::new(db.clone());
 
     let todo = Todo {
         description: "checkout miniorm".into(),

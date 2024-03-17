@@ -6,7 +6,7 @@ use sqlx::{
 };
 use std::marker::PhantomData;
 
-/// A `CrudStore` is a wrapper around the [`PgPool`] that allows
+/// A `Store` is a wrapper around the [`PgPool`] that allows
 /// to perform basic, so-called "CRUD" operations.
 ///
 /// For these operation to be available, the underlying entity type
@@ -17,13 +17,13 @@ use std::marker::PhantomData;
 /// Note that both can be derived automatically; [FromRow] using sqlx
 /// and [Schema] using this crate.
 #[derive(Clone, Debug)]
-pub struct CrudStore<E> {
+pub struct Store<E> {
     db: PgPool,
     entity: PhantomData<E>,
 }
 
-impl<E> CrudStore<E> {
-    /// Create a new [`CrudStore`]
+impl<E> Store<E> {
+    /// Create a new [`Store`]
     pub fn new(db: PgPool) -> Self {
         let entity = PhantomData;
         Self { db, entity }
@@ -31,7 +31,7 @@ impl<E> CrudStore<E> {
 }
 
 /// Table
-impl<E> CrudStore<E>
+impl<E> Store<E>
 where
     E: Schema,
 {
@@ -64,7 +64,7 @@ where
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Create
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-impl<E> CrudStore<E>
+impl<E> Store<E>
 where
     E: for<'r> FromRow<'r, PgRow> + Schema,
 {
@@ -88,7 +88,7 @@ where
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // Read
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-impl<E> CrudStore<E>
+impl<E> Store<E>
 where
     E: for<'r> FromRow<'r, PgRow> + Schema + Unpin + Send,
 {
@@ -114,7 +114,7 @@ where
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Update
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-impl<E> CrudStore<E>
+impl<E> Store<E>
 where
     E: for<'r> FromRow<'r, PgRow> + Schema + Unpin + Send,
 {
@@ -145,7 +145,7 @@ where
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Delete
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-impl<E> CrudStore<E>
+impl<E> Store<E>
 where
     E: Schema,
 {
@@ -170,7 +170,7 @@ where
 #[cfg(feature = "axum")]
 mod handlers {
 
-    use crate::{traits::Schema, CrudStore};
+    use crate::{traits::Schema, Store};
     use axum::{
         extract::{Path, State},
         http::StatusCode,
@@ -181,7 +181,7 @@ mod handlers {
     use sqlx::{postgres::PgRow, FromRow};
 
     pub(crate) async fn list<E>(
-        State(store): State<CrudStore<E>>,
+        State(store): State<Store<E>>,
     ) -> Result<impl IntoResponse, StatusCode>
     where
         E: Schema + for<'r> FromRow<'r, PgRow> + Unpin + Send + Serialize,
@@ -197,7 +197,7 @@ mod handlers {
 
     pub(crate) async fn read<E>(
         Path(id): Path<i64>,
-        State(todos): State<CrudStore<E>>,
+        State(todos): State<Store<E>>,
     ) -> Result<impl IntoResponse, StatusCode>
     where
         E: Schema + for<'r> FromRow<'r, PgRow> + Unpin + Send + Serialize,
@@ -211,7 +211,7 @@ mod handlers {
 
     pub(crate) async fn delete<E>(
         Path(id): Path<i64>,
-        State(todos): State<CrudStore<E>>,
+        State(todos): State<Store<E>>,
     ) -> Result<impl IntoResponse, StatusCode>
     where
         E: Schema + for<'r> FromRow<'r, PgRow> + Unpin + Send + Serialize,
@@ -226,7 +226,7 @@ mod handlers {
     // TODO: update
 
     pub(crate) async fn delete_all<E>(
-        State(todos): State<CrudStore<E>>,
+        State(todos): State<Store<E>>,
     ) -> Result<impl IntoResponse, StatusCode>
     where
         E: Schema + for<'r> FromRow<'r, PgRow> + Unpin + Send + Serialize,
@@ -240,7 +240,7 @@ mod handlers {
 }
 
 #[cfg(feature = "axum")]
-impl<E> CrudStore<E>
+impl<E> Store<E>
 where
     E: Schema
         + for<'r> FromRow<'r, PgRow>
