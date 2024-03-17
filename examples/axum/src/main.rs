@@ -1,4 +1,4 @@
-use axum::{extract::State, http::StatusCode, routing::get, Json, Router};
+use axum::{extract::State, http::StatusCode, response::IntoResponse, routing::get, Json, Router};
 use miniorm::{CrudStore, Schema};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, PgPool};
@@ -52,9 +52,9 @@ async fn main() -> BoxResult<()> {
     Ok(())
 }
 
-async fn list_todos(State(todos): State<TodoStore>) -> Result<Json<Vec<Todo>>, StatusCode> {
+async fn list_todos(State(todos): State<TodoStore>) -> Result<impl IntoResponse, StatusCode> {
     if let Ok(all_todos) = todos.list().await {
-        Ok(Json(all_todos.into_iter().map(|it| it.inner).collect()))
+        Ok(Json(all_todos))
     } else {
         Err(StatusCode::INTERNAL_SERVER_ERROR)
     }

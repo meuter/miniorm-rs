@@ -98,8 +98,8 @@ impl<E: std::fmt::Debug> std::fmt::Debug for WithId<E> {
     }
 }
 
-#[cfg(feature = "serde")]
-mod private {
+#[cfg(feature = "with_serde")]
+mod with_serde {
     use super::WithId;
     use serde::{
         de::{self, MapAccess, SeqAccess, Visitor},
@@ -173,7 +173,7 @@ mod private {
     }
 }
 
-#[cfg(feature = "serde")]
+#[cfg(feature = "with_serde")]
 impl<E: serde::Serialize> serde::Serialize for WithId<E> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -187,14 +187,14 @@ impl<E: serde::Serialize> serde::Serialize for WithId<E> {
     }
 }
 
-#[cfg(feature = "serde")]
+#[cfg(feature = "with_serde")]
 impl<'de, E: serde::Deserialize<'de>> serde::Deserialize<'de> for WithId<E> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
         const FIELDS: &[&str] = &["inner", "id"];
-        deserializer.deserialize_struct("WithId", FIELDS, private::WithIdVisitor::<E>::new())
+        deserializer.deserialize_struct("WithId", FIELDS, with_serde::WithIdVisitor::<E>::new())
     }
 }
 
@@ -225,7 +225,7 @@ mod test {
         assert_ne!(left, right);
     }
 
-    #[cfg(feature = "serde")]
+    #[cfg(feature = "with_serde")]
     mod serde {
         use crate::WithId;
         use serde::{Deserialize, Serialize};
