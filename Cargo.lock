@@ -962,6 +962,7 @@ dependencies = [
  "axum",
  "dotenv",
  "miniorm",
+ "serde",
  "sqlx",
  "tokio",
 ]
