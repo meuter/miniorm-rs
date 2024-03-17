@@ -1,93 +1,93 @@
 use std::net::SocketAddr;
 
-mod router {
-    use axum::{
-        routing::{delete, get},
-        Router,
-    };
-    use miniorm::{traits::Schema, CrudStore};
-    use serde::Serialize;
-    use sqlx::{postgres::PgRow, FromRow};
-
-    pub fn create_rest_router<E, S>(store: CrudStore<E>) -> Router<S>
-    where
-        E: Schema + for<'r> FromRow<'r, PgRow> + Unpin + Send + Serialize + Clone + Sync + 'static,
-    {
-        Router::new()
-            .route("/", get(handler::list))
-            .route("/", delete(handler::delete_all))
-            .route("/:id", delete(handler::delete))
-            .route("/:id", get(handler::read))
-            .with_state(store)
-    }
-
-    mod handler {
-
-        use axum::{
-            extract::{Path, State},
-            http::StatusCode,
-            response::IntoResponse,
-            Json,
-        };
-        use miniorm::{traits::Schema, CrudStore};
-        use serde::Serialize;
-        use sqlx::{postgres::PgRow, FromRow};
-
-        pub(crate) async fn list<E>(
-            State(store): State<CrudStore<E>>,
-        ) -> Result<impl IntoResponse, StatusCode>
-        where
-            E: Schema + for<'r> FromRow<'r, PgRow> + Unpin + Send + Serialize,
-        {
-            store
-                .list()
-                .await
-                .map(Json)
-                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
-        }
-
-        pub(crate) async fn read<E>(
-            Path(id): Path<i64>,
-            State(todos): State<CrudStore<E>>,
-        ) -> Result<impl IntoResponse, StatusCode>
-        where
-            E: Schema + for<'r> FromRow<'r, PgRow> + Unpin + Send + Serialize,
-        {
-            todos
-                .read(id)
-                .await
-                .map(|e| Json(e.into_inner()))
-                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
-        }
-
-        pub(crate) async fn delete<E>(
-            Path(id): Path<i64>,
-            State(todos): State<CrudStore<E>>,
-        ) -> Result<impl IntoResponse, StatusCode>
-        where
-            E: Schema + for<'r> FromRow<'r, PgRow> + Unpin + Send + Serialize,
-        {
-            todos
-                .delete(id)
-                .await
-                .map(|_| Json(()))
-                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
-        }
-
-        pub(crate) async fn delete_all<E>(
-            State(todos): State<CrudStore<E>>,
-        ) -> Result<impl IntoResponse, StatusCode>
-        where
-            E: Schema + for<'r> FromRow<'r, PgRow> + Unpin + Send + Serialize,
-        {
-            todos
-                .delete_all()
-                .await
-                .map(|_| Json(()))
-                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
-        }
-    }
-}
+// mod router {
+//     use axum::{
+//         routing::{delete, get},
+//         Router,
+//     };
+//     use miniorm::{traits::Schema, CrudStore};
+//     use serde::Serialize;
+//     use sqlx::{postgres::PgRow, FromRow};
+//
+//     pub fn create_rest_router<E, S>(store: CrudStore<E>) -> Router<S>
+//     where
+//         E: Schema + for<'r> FromRow<'r, PgRow> + Unpin + Send + Serialize + Clone + Sync + 'static,
+//     {
+//         Router::new()
+//             .route("/", get(handler::list))
+//             .route("/", delete(handler::delete_all))
+//             .route("/:id", delete(handler::delete))
+//             .route("/:id", get(handler::read))
+//             .with_state(store)
+//     }
+//
+//     mod handler {
+//
+//         use axum::{
+//             extract::{Path, State},
+//             http::StatusCode,
+//             response::IntoResponse,
+//             Json,
+//         };
+//         use miniorm::{traits::Schema, CrudStore};
+//         use serde::Serialize;
+//         use sqlx::{postgres::PgRow, FromRow};
+//
+//         pub(crate) async fn list<E>(
+//             State(store): State<CrudStore<E>>,
+//         ) -> Result<impl IntoResponse, StatusCode>
+//         where
+//             E: Schema + for<'r> FromRow<'r, PgRow> + Unpin + Send + Serialize,
+//         {
+//             store
+//                 .list()
+//                 .await
+//                 .map(Json)
+//                 .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+//         }
+//
+//         pub(crate) async fn read<E>(
+//             Path(id): Path<i64>,
+//             State(todos): State<CrudStore<E>>,
+//         ) -> Result<impl IntoResponse, StatusCode>
+//         where
+//             E: Schema + for<'r> FromRow<'r, PgRow> + Unpin + Send + Serialize,
+//         {
+//             todos
+//                 .read(id)
+//                 .await
+//                 .map(|e| Json(e.into_inner()))
+//                 .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+//         }
+//
+//         pub(crate) async fn delete<E>(
+//             Path(id): Path<i64>,
+//             State(todos): State<CrudStore<E>>,
+//         ) -> Result<impl IntoResponse, StatusCode>
+//         where
+//             E: Schema + for<'r> FromRow<'r, PgRow> + Unpin + Send + Serialize,
+//         {
+//             todos
+//                 .delete(id)
+//                 .await
+//                 .map(|_| Json(()))
+//                 .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+//         }
+//
+//         pub(crate) async fn delete_all<E>(
+//             State(todos): State<CrudStore<E>>,
+//         ) -> Result<impl IntoResponse, StatusCode>
+//         where
+//             E: Schema + for<'r> FromRow<'r, PgRow> + Unpin + Send + Serialize,
+//         {
+//             todos
+//                 .delete_all()
+//                 .await
+//                 .map(|_| Json(()))
+//                 .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+//         }
+//     }
+// }
 
 use axum::Router;
 use miniorm::{CrudStore, Schema};
@@ -127,13 +127,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     todos.create(Todo::new("go walk the dog")).await?;
     todos.create(Todo::new("groceries")).await?;
 
-    let app = Router::new().nest("/todos", router::create_rest_router(todos));
-
+    // create the app
+    let app = Router::new().nest("/todos", todos.into_axum_router());
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
-    println!("listening...");
-    println!("- try: http://{}/todos", addr);
-    println!("- try: http://{}/todos/2", addr);
+    println!("listening on http://{}", addr);
 
+    // serve the app
     let listener = TcpListener::bind(&addr).await.unwrap();
     axum::serve(listener, app).await?;
 

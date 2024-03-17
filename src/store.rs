@@ -166,3 +166,109 @@ where
         Ok(sqlx::query(&sql).execute(&self.db).await?.rows_affected())
     }
 }
+
+#[cfg(feature = "axum")]
+mod handlers {
+
+    use crate::{traits::Schema, CrudStore};
+    use axum::{
+        extract::{Path, State},
+        http::StatusCode,
+        response::IntoResponse,
+        Json,
+    };
+    use serde::Serialize;
+    use sqlx::{postgres::PgRow, FromRow};
+
+    pub(crate) async fn list<E>(
+        State(store): State<CrudStore<E>>,
+    ) -> Result<impl IntoResponse, StatusCode>
+    where
+        E: Schema + for<'r> FromRow<'r, PgRow> + Unpin + Send + Serialize,
+    {
+        store
+            .list()
+            .await
+            .map(Json)
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+    }
+
+    // TODO: create
+
+    pub(crate) async fn read<E>(
+        Path(id): Path<i64>,
+        State(todos): State<CrudStore<E>>,
+    ) -> Result<impl IntoResponse, StatusCode>
+    where
+        E: Schema + for<'r> FromRow<'r, PgRow> + Unpin + Send + Serialize,
+    {
+        todos
+            .read(id)
+            .await
+            .map(|e| Json(e.into_inner()))
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+    }
+
+    pub(crate) async fn delete<E>(
+        Path(id): Path<i64>,
+        State(todos): State<CrudStore<E>>,
+    ) -> Result<impl IntoResponse, StatusCode>
+    where
+        E: Schema + for<'r> FromRow<'r, PgRow> + Unpin + Send + Serialize,
+    {
+        todos
+            .delete(id)
+            .await
+            .map(|_| Json(()))
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+    }
+
+    // TODO: update
+
+    pub(crate) async fn delete_all<E>(
+        State(todos): State<CrudStore<E>>,
+    ) -> Result<impl IntoResponse, StatusCode>
+    where
+        E: Schema + for<'r> FromRow<'r, PgRow> + Unpin + Send + Serialize,
+    {
+        todos
+            .delete_all()
+            .await
+            .map(|_| Json(()))
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+    }
+}
+
+#[cfg(feature = "axum")]
+impl<E> CrudStore<E>
+where
+    E: Schema
+        + for<'r> FromRow<'r, PgRow>
+        + Unpin
+        + Send
+        + serde::Serialize
+        + Clone
+        + Sync
+        + 'static,
+{
+    /// Converts the store into an [`axum::Router`]
+    /// that will handle all standard REST request to realize CRUD operations
+    /// on the store.
+    ///
+    /// - `GET` on `/` will list all entities from the store in json format.
+    /// - `GET` on `/:id` will read the entity with the provided `id` from the store
+    ///   and return it in json format
+    /// - `DELETE` on `/` will delete all entities from the store.
+    /// - `DELETE` on `/:id` will delete the entity with the provided `id` from the store.
+    /// - TODO: POST and PUT
+    pub fn into_axum_router<S>(self) -> axum::Router<S> {
+        use axum::routing::*;
+
+        Router::new()
+            .route("/", get(handlers::list))
+            .route("/", delete(handlers::delete_all))
+            .route("/:id", delete(handlers::delete))
+            .route("/:id", get(handlers::read))
+            .with_state(self)
+    }
+}

@@ -11,6 +11,7 @@ homepage = "https://github.com/meuter/miniorm-rs"
 repository = "https://github.com/meuter/miniorm-rs"
 
 [dependencies]
+axum = { version = "0.7.4", optional = true }
 dotenv = "0.15.0"
 itertools = "0.12.1"
 miniorm-macros = { version = "0.3.0", path = "macros" }
@@ -20,6 +21,12 @@ serde = { version = "1.0.197", features = ["derive"], optional = true }
 
 [workspace]
 members = ["examples/transactions", "examples/todo", "macros", "examples/axum"]
+
+[features]
+default = []
+serde = ["dep:serde"]
+axum = ["serde", "dep:axum"]
+full = ["axum"]
 
 [dev-dependencies]
 serde_json = "1.0.114"
