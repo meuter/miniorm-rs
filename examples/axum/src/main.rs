@@ -2,7 +2,7 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::IntoResponse,
-    routing::get,
+    routing::{delete, get},
     Json, Router,
 };
 use miniorm::{CrudStore, Schema};
@@ -48,6 +48,7 @@ async fn main() -> BoxResult<()> {
     // create and start the app
     let app = Router::new()
         .route("/todos/:id/done", get(mark_as_done))
+        .route("/todos/:id", delete(delete_todo))
         .route("/todos/:id", get(read_todo))
         .route("/todos", get(list_todos))
         .with_state(todos);
@@ -82,6 +83,17 @@ async fn read_todo(
         .read(id)
         .await
         .map(|e| Json(e.into_inner()))
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+}
+
+async fn delete_todo(
+    Path(id): Path<i64>,
+    State(todos): State<TodoStore>,
+) -> Result<impl IntoResponse, StatusCode> {
+    todos
+        .delete(id)
+        .await
+        .map(|_| Json(()))
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
 }
 
