@@ -98,7 +98,7 @@ impl<E: std::fmt::Debug> std::fmt::Debug for WithId<E> {
     }
 }
 
-#[cfg(feature = "with_serde")]
+#[cfg(feature = "serde")]
 mod with_serde {
     use super::WithId;
     use serde::{
@@ -173,7 +173,7 @@ mod with_serde {
     }
 }
 
-#[cfg(feature = "with_serde")]
+#[cfg(feature = "serde")]
 impl<E: serde::Serialize> serde::Serialize for WithId<E> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -187,7 +187,7 @@ impl<E: serde::Serialize> serde::Serialize for WithId<E> {
     }
 }
 
-#[cfg(feature = "with_serde")]
+#[cfg(feature = "serde")]
 impl<'de, E: serde::Deserialize<'de>> serde::Deserialize<'de> for WithId<E> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -225,7 +225,7 @@ mod test {
         assert_ne!(left, right);
     }
 
-    #[cfg(feature = "with_serde")]
+    #[cfg(feature = "serde")]
     mod serde {
         use crate::WithId;
         use serde::{Deserialize, Serialize};
