@@ -1,4 +1,4 @@
-use miniorm::{Schema, WithId};
+use miniorm::Schema;
 use sqlx::FromRow;
 
 /// A todo including a `description` and a `done` flag
@@ -29,21 +29,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("Inserting...");
     let todo = store.create(todo).await?;
-    println!("todo.id = {}", todo.id);
 
     println!("Retrieveing by id...");
     let mut fetched = store.read(todo.id).await?;
-    println!("fetched.id = {}", fetched.id);
-    assert_eq!(todo.inner, fetched.inner);
+    assert_eq!(todo, fetched);
 
     fetched.inner.done = true;
     let fetched = store.update(fetched).await?;
     assert_eq!(fetched.id, todo.id);
+    assert!(fetched.inner.done);
 
     println!("Listing all...");
     let all = store.list().await?;
     assert_eq!(all.len(), 1);
-    assert_eq!(&fetched.inner, &all[0].inner);
+    assert_eq!(&fetched, &all[0]);
 
     println!("Deleting by id...");
     let res = store.delete(todo.id).await?;

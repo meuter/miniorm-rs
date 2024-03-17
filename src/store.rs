@@ -1,8 +1,8 @@
-use crate::traits::Schema;
+use crate::{traits::Schema, WithId};
 use itertools::Itertools;
 use sqlx::{
     postgres::{PgQueryResult, PgRow},
-    FromRow, PgPool, Row,
+    FromRow, PgPool,
 };
 use std::marker::PhantomData;
 
@@ -20,28 +20,6 @@ use std::marker::PhantomData;
 pub struct CrudStore<E> {
     db: PgPool,
     entity: PhantomData<E>,
-}
-
-pub struct WithId<E> {
-    pub id: i64,
-    pub inner: E,
-}
-
-impl<E> WithId<E> {
-    pub fn new(inner: E, id: i64) -> Self {
-        WithId { inner, id }
-    }
-}
-
-impl<'r, E> FromRow<'r, PgRow> for WithId<E>
-where
-    E: FromRow<'r, PgRow>,
-{
-    fn from_row(row: &'r PgRow) -> sqlx::Result<Self> {
-        let inner = E::from_row(row)?;
-        let id = row.try_get("id")?;
-        Ok(Self { inner, id })
-    }
 }
 
 impl<E> CrudStore<E> {
@@ -103,7 +81,7 @@ where
         }
 
         let (id,) = query.fetch_one(&self.db).await?;
-        Ok(WithId { inner: entity, id })
+        Ok(WithId::new(entity, id))
     }
 }
 

@@ -96,12 +96,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("Retrieveing by id...");
     let fetched = store.read(tx.id).await?;
-    assert_eq!(tx.inner, fetched.inner);
+    assert_eq!(tx, fetched);
 
     println!("Listing all...");
     let all = store.list().await?;
     assert_eq!(all.len(), 1);
-    assert_eq!(&tx.inner, &all[0].inner);
+    assert_eq!(&tx, &all[0]);
 
     println!("Deleting by id...");
     let res = store.delete(tx.id).await?;

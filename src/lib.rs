@@ -52,8 +52,10 @@
 //!   using [`serde_json`].
 
 mod store;
+mod with_id;
 
 /// module providing the [`Schema`] trait.
 pub mod traits;
 pub use miniorm_macros::Schema;
-pub use store::{CrudStore, WithId};
+pub use store::CrudStore;
+pub use with_id::WithId;
