@@ -24,4 +24,4 @@ strum = { version = "0.26.2", features = ["derive"] }
 tokio = { version = "1.36.0", features = ["full"] }
 
 [workspace]
-members = ["examples/transactions", "examples/todo", "macros"]
+members = ["examples/transactions", "examples/todo", "macros", "examples/axum"]
