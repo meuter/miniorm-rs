@@ -1,13 +1,20 @@
+use std::{fmt, marker::PhantomData};
+
+use serde::{
+    de::{self, MapAccess, SeqAccess, Visitor},
+    ser::SerializeStruct,
+    Deserialize, Serialize,
+};
 use sqlx::{postgres::PgRow, FromRow, Row};
 
 /// `WithId` is a wrapper of struct that provides an
 /// additional id field which is used in the database
 /// to identify the entity.
 pub struct WithId<E> {
-    /// the `id` used to identify the `inner` entity
-    pub id: i64,
     /// the wrapped entity
     pub inner: E,
+    /// the `id` used to identify the `inner` entity
+    pub id: i64,
 }
 
 impl<E> WithId<E> {
@@ -20,22 +27,38 @@ impl<E> WithId<E> {
     /// # Example
     ///
     /// ```
-    /// #[derive(Clone, Debug, Eq, PartialEq)]
-    /// struct Todo {
-    ///     description: String,
-    ///     done: bool,
-    /// }
-    ///
-    /// let todo = Todo{
-    ///     description: "checkout miniorm".into(),
-    ///     done: false
-    /// };
-    /// let todo_with_id = miniorm::WithId::new(todo.clone(), 1);
-    /// assert_eq!(todo_with_id.id, 1);
-    /// assert_eq!(todo_with_id.inner, todo);
+    /// let with_id = miniorm::WithId::new("miniorm", 1);
+    /// assert_eq!(with_id.id, 1);
+    /// assert_eq!(with_id.inner, "miniorm");
     /// ```
     pub fn new(inner: E, id: i64) -> Self {
         WithId { inner, id }
+    }
+
+    /// Extracts the inner entity
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let with_id = miniorm::WithId::new("miniorm", 10);
+    /// assert_eq!(with_id.into_inner(), "miniorm");
+    ///
+    /// ```
+    pub fn into_inner(self) -> E {
+        self.inner
+    }
+
+    /// Extracts the id and discards the entity
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let with_id = miniorm::WithId::new("miniorm", 10);
+    /// assert_eq!(with_id.into_id(), 10);
+    ///
+    /// ```
+    pub fn into_id(self) -> i64 {
+        self.id
     }
 }
 
@@ -76,6 +99,87 @@ impl<E: std::fmt::Debug> std::fmt::Debug for WithId<E> {
     }
 }
 
+impl<E: Serialize> Serialize for WithId<E> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut s = serializer.serialize_struct("WithId", 2)?;
+        s.serialize_field("id", &self.id)?;
+        s.serialize_field("inner", &self.inner)?;
+        s.end()
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(field_identifier, rename_all = "lowercase")]
+enum WithIdFields {
+    Inner,
+    Id,
+}
+
+struct WithIdVisitor<E> {
+    inner: PhantomData<E>,
+}
+
+impl<'de, E: Deserialize<'de>> Visitor<'de> for WithIdVisitor<E> {
+    type Value = WithId<E>;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("struct WithId")
+    }
+
+    fn visit_seq<V>(self, mut seq: V) -> Result<Self::Value, V::Error>
+    where
+        V: SeqAccess<'de>,
+    {
+        let id = seq
+            .next_element()?
+            .ok_or_else(|| de::Error::invalid_length(0, &self))?;
+        let inner = seq
+            .next_element()?
+            .ok_or_else(|| de::Error::invalid_length(1, &self))?;
+        Ok(Self::Value::new(inner, id))
+    }
+
+    fn visit_map<V>(self, mut map: V) -> Result<Self::Value, V::Error>
+    where
+        V: MapAccess<'de>,
+    {
+        let mut inner = None;
+        let mut id = None;
+        while let Some(key) = map.next_key()? {
+            match key {
+                WithIdFields::Inner => {
+                    if inner.is_some() {
+                        return Err(de::Error::duplicate_field("inner"));
+                    }
+                    inner = Some(map.next_value()?);
+                }
+                WithIdFields::Id => {
+                    if id.is_some() {
+                        return Err(de::Error::duplicate_field("nanos"));
+                    }
+                    id = Some(map.next_value()?);
+                }
+            }
+        }
+        let inner = inner.ok_or_else(|| de::Error::missing_field("inner"))?;
+        let id = id.ok_or_else(|| de::Error::missing_field("id"))?;
+        Ok(Self::Value::new(inner, id))
+    }
+}
+
+impl<'de, E: Deserialize<'de>> Deserialize<'de> for WithId<E> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &["inner", "id"];
+        deserializer.deserialize_struct("WithId", FIELDS, WithIdVisitor::<E> { inner: PhantomData })
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -101,5 +205,29 @@ mod test {
         assert_ne!(left, right);
         let right = WithId::new(Foo(2), 10);
         assert_ne!(left, right);
+    }
+
+    #[test]
+    fn is_serialize_if_inner_is_serialize() {
+        #[derive(Serialize)]
+        struct Foo {
+            x: u32,
+        }
+
+        let with_id = WithId::new(Foo { x: 420 }, 69);
+        assert_eq!(
+            serde_json::to_string(&with_id).unwrap(),
+            r#"{"id":69,"inner":{"x":420}}"#
+        );
+    }
+
+    #[test]
+    fn is_deserialize_if_inner_is_deserialize() {
+        #[derive(Deserialize)]
+        struct Foo(u32);
+
+        let with_id: WithId<Foo> = serde_json::from_str(r#"{"id":69,"inner":420}"#).unwrap();
+        assert_eq!(with_id.inner.0, 420);
+        assert_eq!(with_id.id, 69);
     }
 }
