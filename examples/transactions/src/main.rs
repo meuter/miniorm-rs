@@ -95,7 +95,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let tx = store.create(tx).await?;
 
     println!("Retrieveing by id...");
-    let fetched = store.read(tx.id).await?;
+    let fetched = store.read(tx.id()).await?;
     assert_eq!(tx, fetched);
 
     println!("Listing all...");
@@ -104,12 +104,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     assert_eq!(&tx, &all[0]);
 
     println!("Deleting by id...");
-    let res = store.delete(tx.id).await?;
+    let res = store.delete(tx.id()).await?;
     assert_eq!(res.rows_affected(), 1);
 
     println!("Checking delete successful");
     assert!(matches!(
-        store.read(tx.id).await,
+        store.read(tx.id()).await,
         Err(sqlx::Error::RowNotFound)
     ));
 

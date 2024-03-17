@@ -16,15 +16,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Build with default feature
-        run: cargo build
+        run: cargo build --workspace
       - name: Build with all features
         run: cargo build --all-features
       - name: Build without any feature
         run: cargo build --no-default-features
-      - name: Build each features individually
-        run: |
-          cargo build --no-default-features -F serde
-          cargo build --no-default-features -F axum
-          cargo build --no-default-features -F full
-      - name: Build the workspace (including all example)
-        run: cargo build --workspace

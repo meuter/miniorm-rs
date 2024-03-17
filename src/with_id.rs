@@ -1,3 +1,5 @@
+use std::ops::{Deref, DerefMut};
+
 use sqlx::{postgres::PgRow, FromRow, Row};
 
 /// [`WithId`] is a wrapper of struct that provides an
@@ -11,9 +13,9 @@ use sqlx::{postgres::PgRow, FromRow, Row};
 /// - [`Eq`] and [`PartialEq`]
 pub struct WithId<E> {
     /// the wrapped entity
-    pub inner: E,
+    inner: E,
     /// the `id` used to identify the `inner` entity
-    pub id: i64,
+    id: i64,
 }
 
 impl<E> WithId<E> {
@@ -27,8 +29,8 @@ impl<E> WithId<E> {
     ///
     /// ```
     /// let with_id = miniorm::WithId::new("miniorm", 1);
-    /// assert_eq!(with_id.id, 1);
-    /// assert_eq!(with_id.inner, "miniorm");
+    /// assert_eq!(with_id.id(), 1);
+    /// assert_eq!(with_id.into_inner(), "miniorm");
     /// ```
     pub fn new(inner: E, id: i64) -> Self {
         WithId { inner, id }
@@ -47,23 +49,57 @@ impl<E> WithId<E> {
         self.inner
     }
 
+    /// Returns a reference to inner entity
+    /// # Example
+    ///
+    /// ```
+    /// let with_id = miniorm::WithId::new("miniorm", 10);
+    /// assert_eq!(with_id.inner(), &"miniorm");
+    ///
+    /// ```
+    pub fn inner(&self) -> &E {
+        &self.inner
+    }
+
+    /// Returns a mutable reference to the inner entity
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let mut with_id = miniorm::WithId::new("miniorm", 10);
+    /// *with_id.inner_mut() = "miniorm indeed!";
+    /// assert_eq!(with_id.inner(), &"miniorm indeed!");
+    ///
+    /// ```
+    pub fn inner_mut(&mut self) -> &mut E {
+        &mut self.inner
+    }
+
     /// Extracts the id and discards the entity
     ///
     /// # Example
     ///
     /// ```
     /// let with_id = miniorm::WithId::new("miniorm", 10);
-    /// assert_eq!(with_id.into_id(), 10);
+    /// assert_eq!(with_id.id(), 10);
     ///
     /// ```
-    pub fn into_id(self) -> i64 {
+    pub fn id(&self) -> i64 {
         self.id
     }
 }
 
-impl<E> AsRef<E> for WithId<E> {
-    fn as_ref(&self) -> &E {
+impl<E> Deref for WithId<E> {
+    type Target = E;
+
+    fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+
+impl<E> DerefMut for WithId<E> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 

@@ -134,10 +134,10 @@ where
         let mut query = sqlx::query_as(&sql);
 
         for col in E::COLUMNS.iter().map(|col| col.0) {
-            query = entity.inner.bind(query, col)
+            query = entity.inner().bind(query, col)
         }
 
-        let entity = query.bind(entity.id).fetch_one(&self.db).await?;
+        let entity = query.bind(entity.id()).fetch_one(&self.db).await?;
         Ok(entity)
     }
 }

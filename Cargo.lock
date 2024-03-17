@@ -944,12 +944,14 @@ version = "0.3.0"
 dependencies = [
  "axum",
  "dotenv",
+ "http-body-util",
  "itertools",
  "miniorm-macros",
  "serde",
  "serde_json",
  "sqlx",
  "tokio",
+ "tower",
 ]
 
 [[package]]
@@ -958,10 +960,13 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "dotenv",
+ "http-body-util",
  "miniorm",
  "serde",
+ "serde_json",
  "sqlx",
  "tokio",
+ "tower",
 ]
 
 [[package]]
