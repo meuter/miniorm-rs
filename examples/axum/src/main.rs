@@ -53,9 +53,9 @@ async fn main() -> BoxResult<()> {
 }
 
 async fn list_todos(State(todos): State<TodoStore>) -> Result<impl IntoResponse, StatusCode> {
-    if let Ok(all_todos) = todos.list().await {
-        Ok(Json(all_todos))
-    } else {
-        Err(StatusCode::INTERNAL_SERVER_ERROR)
-    }
+    todos
+        .list()
+        .await
+        .map(Json)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
 }
