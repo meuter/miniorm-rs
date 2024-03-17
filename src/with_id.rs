@@ -61,6 +61,12 @@ impl<E> WithId<E> {
     }
 }
 
+impl<E> AsRef<E> for WithId<E> {
+    fn as_ref(&self) -> &E {
+        &self.inner
+    }
+}
+
 impl<'r, E> FromRow<'r, PgRow> for WithId<E>
 where
     E: FromRow<'r, PgRow>,
