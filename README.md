@@ -40,47 +40,42 @@ could be provided in the future.
 
 # Examples
 
-## Todo
+```rust 
+use sqlx::FromRow;
+use miniorm::Schema;
 
-```rust
-mod todo {
-    use sqlx::FromRow;
-    use miniorm::Schema;
+#[derive(Debug, Clone, Eq, PartialEq, FromRow, Schema)]
+#[cfg_attr(feature = "axum", derive(serde::Serialize, serde::Deserialize))]
+pub struct Todo {
+    #[column(TEXT NOT NULL)]
+    description: String,
 
-    #[derive(Debug, Clone, Eq, PartialEq, FromRow, Schema)]
-    pub struct Todo {
-        #[column(TEXT NOT NULL)]
-        description: String,
+    #[column(BOOLEAN NOT NULL DEFAULT false)]
+    done: bool,
+}
 
-        #[column(BOOLEAN NOT NULL DEFAULT false)]
-        done: bool,
+impl Todo {
+    pub fn new(description: impl AsRef<str>) -> Self {
+        let description = description.as_ref().to_string();
+        let done = false;
+        Todo { description, done }
+    }
+    
+    pub fn is_done(&self) -> bool {
+        self.done
     }
 
-    impl Todo {
-        pub fn new(description: impl AsRef<str>) -> Self {
-            let description = description.as_ref().to_string();
-            let done = false;
-            Todo { description, done }
-        }
-        
-        pub fn is_done(&self) -> bool {
-            self.done
-        }
+    pub fn description(&self) -> &str {
+        &self.description
+    }
 
-        pub fn description(&self) -> &str {
-            &self.description
-        }
-
-        pub fn mark_as_done(&mut self) {
-            self.done = true;
-        }
+    pub fn mark_as_done(&mut self) {
+        self.done = true;
     }
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    use todo::Todo;
-
     // connect to postgres
     dotenv::dotenv()?;
     let url = std::env::var("DATABASE_URL").expect("missing DATABASE_URL env");
@@ -120,78 +115,38 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let res = store.delete(updated.id()).await?;
     assert_eq!(res.rows_affected(), 1);
 
-    Ok(())
-}
-```
+    // REST API
+    #[cfg(feature = "axum")]
+    {
+        use axum::{
+            body::Body,
+            http::{Request, StatusCode},
+        };
+        use http_body_util::BodyExt;
+        use tower::ServiceExt;
 
-## Todo REST API with Axum
+        // recreate the table and seed with some todos
+        store.recreate_table().await?;
+        store.create(Todo::new("do the laundry")).await?;
+        store.create(Todo::new("wash the dishes")).await?;
+        store.create(Todo::new("go walk the dog")).await?; // <- id:3
+        store.create(Todo::new("groceries")).await?;
 
-```rust
-mod todo {
-    use miniorm::Schema;
-    use serde::{Deserialize, Serialize};
-    use sqlx::FromRow;
+        // create the app to serve the REST api on `/todos`
+        let app = axum::Router::new().nest("/todos", store.into_axum_router());
 
-    #[derive(Debug, Clone, Eq, PartialEq, FromRow, Schema, Serialize, Deserialize)] // <- required for the REST API
-    pub struct Todo {
-        #[column(TEXT NOT NULL)]
-        description: String,
+        // `GET /todos/3`
+        let request = Request::builder().uri("/todos/3").body(Body::empty())?;
+        let response = app.oneshot(request).await?;
+        assert_eq!(response.status(), StatusCode::OK);
 
-        #[column(BOOLEAN NOT NULL DEFAULT false)]
-        done: bool,
-    }
-
-    impl Todo {
-        pub fn new(description: impl AsRef<str>) -> Self {
-            let description = description.as_ref().to_string();
-            let done = false;
-            Todo { description, done }
-        }
-
-        pub fn description(&self) -> &str {
-            &self.description
-        }
-    }
-}
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    use axum::{
-        body::Body,
-        http::{Request, StatusCode},
+        // check todo
+        let body = response.into_body().collect().await.unwrap().to_bytes();
+        let todo: Todo = serde_json::from_slice(&body).unwrap();
+        assert_eq!(todo.description(), "go walk the dog");
     };
-    use http_body_util::BodyExt;
-    use todo::Todo;
-    use tower::ServiceExt;
-
-    // connect to postgres
-    dotenv::dotenv()?;
-    let url = std::env::var("DATABASE_URL").expect("missing DATABASE_URL env");
-    let db = sqlx::PgPool::connect(&url).await?;
-
-    // create a store and seed with somei todos
-    let store = miniorm::Store::new(db);
-    store.recreate_table().await?;
-    store.create(Todo::new("do the laundry")).await?;
-    store.create(Todo::new("wash the dishes")).await?;
-    store.create(Todo::new("go walk the dog")).await?;
-    store.create(Todo::new("groceries")).await?;
-
-    // create the app to serve the REST api on `/todos`
-    let app = axum::Router::new().nest("/todos", store.into_axum_router());
-
-    // `GET /todos/3`
-    let request = Request::builder().uri("/todos/3").body(Body::empty())?;
-    let response = app.oneshot(request).await?;
-    assert_eq!(response.status(), StatusCode::OK);
-
-    // check todo
-    let body = response.into_body().collect().await.unwrap().to_bytes();
-    let todo: Todo = serde_json::from_slice(&body).unwrap();
-    assert_eq!(todo.description(), "go walk the dog");
 
     Ok(())
 }
-
 ```
 
