@@ -1,10 +1,3 @@
-use std::{fmt, marker::PhantomData};
-
-use serde::{
-    de::{self, MapAccess, SeqAccess, Visitor},
-    ser::SerializeStruct,
-    Deserialize, Serialize,
-};
 use sqlx::{postgres::PgRow, FromRow, Row};
 
 /// `WithId` is a wrapper of struct that provides an
@@ -99,11 +92,86 @@ impl<E: std::fmt::Debug> std::fmt::Debug for WithId<E> {
     }
 }
 
-impl<E: Serialize> Serialize for WithId<E> {
+mod private {
+    use super::WithId;
+    use serde::{
+        de::{self, MapAccess, SeqAccess, Visitor},
+        Deserialize,
+    };
+    use std::marker::PhantomData;
+
+    #[derive(Deserialize)]
+    #[serde(field_identifier, rename_all = "lowercase")]
+    pub(crate) enum WithIdFields {
+        Inner,
+        Id,
+    }
+
+    pub(crate) struct WithIdVisitor<E> {
+        inner: PhantomData<E>,
+    }
+
+    impl<E> WithIdVisitor<E> {
+        pub(crate) fn new() -> Self {
+            WithIdVisitor { inner: PhantomData }
+        }
+    }
+
+    impl<'de, E: Deserialize<'de>> Visitor<'de> for WithIdVisitor<E> {
+        type Value = WithId<E>;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            formatter.write_str("struct WithId")
+        }
+
+        fn visit_seq<V>(self, mut seq: V) -> Result<Self::Value, V::Error>
+        where
+            V: SeqAccess<'de>,
+        {
+            let id = seq
+                .next_element()?
+                .ok_or_else(|| de::Error::invalid_length(0, &self))?;
+            let inner = seq
+                .next_element()?
+                .ok_or_else(|| de::Error::invalid_length(1, &self))?;
+            Ok(Self::Value::new(inner, id))
+        }
+
+        fn visit_map<V>(self, mut map: V) -> Result<Self::Value, V::Error>
+        where
+            V: MapAccess<'de>,
+        {
+            let mut inner = None;
+            let mut id = None;
+            while let Some(key) = map.next_key()? {
+                match key {
+                    WithIdFields::Inner => {
+                        if inner.is_some() {
+                            return Err(de::Error::duplicate_field("inner"));
+                        }
+                        inner = Some(map.next_value()?);
+                    }
+                    WithIdFields::Id => {
+                        if id.is_some() {
+                            return Err(de::Error::duplicate_field("nanos"));
+                        }
+                        id = Some(map.next_value()?);
+                    }
+                }
+            }
+            let inner = inner.ok_or_else(|| de::Error::missing_field("inner"))?;
+            let id = id.ok_or_else(|| de::Error::missing_field("id"))?;
+            Ok(Self::Value::new(inner, id))
+        }
+    }
+}
+
+impl<E: serde::Serialize> serde::Serialize for WithId<E> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-        S: serde::Serializer,
+        S: ::serde::ser::Serializer,
     {
+        use serde::ser::SerializeStruct;
         let mut s = serializer.serialize_struct("WithId", 2)?;
         s.serialize_field("id", &self.id)?;
         s.serialize_field("inner", &self.inner)?;
@@ -111,78 +179,20 @@ impl<E: Serialize> Serialize for WithId<E> {
     }
 }
 
-#[derive(Deserialize)]
-#[serde(field_identifier, rename_all = "lowercase")]
-enum WithIdFields {
-    Inner,
-    Id,
-}
-
-struct WithIdVisitor<E> {
-    inner: PhantomData<E>,
-}
-
-impl<'de, E: Deserialize<'de>> Visitor<'de> for WithIdVisitor<E> {
-    type Value = WithId<E>;
-
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("struct WithId")
-    }
-
-    fn visit_seq<V>(self, mut seq: V) -> Result<Self::Value, V::Error>
-    where
-        V: SeqAccess<'de>,
-    {
-        let id = seq
-            .next_element()?
-            .ok_or_else(|| de::Error::invalid_length(0, &self))?;
-        let inner = seq
-            .next_element()?
-            .ok_or_else(|| de::Error::invalid_length(1, &self))?;
-        Ok(Self::Value::new(inner, id))
-    }
-
-    fn visit_map<V>(self, mut map: V) -> Result<Self::Value, V::Error>
-    where
-        V: MapAccess<'de>,
-    {
-        let mut inner = None;
-        let mut id = None;
-        while let Some(key) = map.next_key()? {
-            match key {
-                WithIdFields::Inner => {
-                    if inner.is_some() {
-                        return Err(de::Error::duplicate_field("inner"));
-                    }
-                    inner = Some(map.next_value()?);
-                }
-                WithIdFields::Id => {
-                    if id.is_some() {
-                        return Err(de::Error::duplicate_field("nanos"));
-                    }
-                    id = Some(map.next_value()?);
-                }
-            }
-        }
-        let inner = inner.ok_or_else(|| de::Error::missing_field("inner"))?;
-        let id = id.ok_or_else(|| de::Error::missing_field("id"))?;
-        Ok(Self::Value::new(inner, id))
-    }
-}
-
-impl<'de, E: Deserialize<'de>> Deserialize<'de> for WithId<E> {
+impl<'de, E: serde::Deserialize<'de>> serde::Deserialize<'de> for WithId<E> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
         const FIELDS: &[&str] = &["inner", "id"];
-        deserializer.deserialize_struct("WithId", FIELDS, WithIdVisitor::<E> { inner: PhantomData })
+        deserializer.deserialize_struct("WithId", FIELDS, private::WithIdVisitor::<E>::new())
     }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
+    use serde::{Deserialize, Serialize};
 
     #[test]
     fn is_clone_if_inner_is_clone() {
