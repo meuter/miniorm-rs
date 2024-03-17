@@ -22,23 +22,7 @@ impl Todo {
     }
 }
 
-#[derive(Clone, Debug)]
-struct TodoStore(pub CrudStore<Todo>);
-
-impl TodoStore {
-    fn new(db: PgPool) -> Self {
-        TodoStore(CrudStore::new(db))
-    }
-
-    async fn seed_test_data(&self) -> BoxResult<()> {
-        self.0.recreate_table().await?;
-        self.0.create(&Todo::new("do the laundry")).await?;
-        self.0.create(&Todo::new("wash the dishes")).await?;
-        self.0.create(&Todo::new("go walk the dog")).await?;
-        self.0.create(&Todo::new("groceries")).await?;
-        Ok(())
-    }
-}
+type TodoStore = CrudStore<Todo>;
 
 #[tokio::main]
 async fn main() -> BoxResult<()> {
@@ -49,7 +33,11 @@ async fn main() -> BoxResult<()> {
 
     // initialize todo store
     let todos = TodoStore::new(db);
-    todos.seed_test_data().await?;
+    todos.recreate_table().await?;
+    todos.create(Todo::new("do the laundry")).await?;
+    todos.create(Todo::new("wash the dishes")).await?;
+    todos.create(Todo::new("go walk the dog")).await?;
+    todos.create(Todo::new("groceries")).await?;
 
     // create and start the app
     let app = Router::new()
@@ -65,8 +53,8 @@ async fn main() -> BoxResult<()> {
 }
 
 async fn list_todos(State(todos): State<TodoStore>) -> Result<Json<Vec<Todo>>, StatusCode> {
-    if let Ok(all_todos) = todos.0.list().await {
-        Ok(Json(all_todos))
+    if let Ok(all_todos) = todos.list().await {
+        Ok(Json(all_todos.into_iter().map(|it| it.inner).collect()))
     } else {
         Err(StatusCode::INTERNAL_SERVER_ERROR)
     }

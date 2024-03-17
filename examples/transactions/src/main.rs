@@ -92,24 +92,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     println!("Inserting...");
-    let id = store.create(&tx).await?;
+    let tx = store.create(tx).await?;
 
     println!("Retrieveing by id...");
-    let fetched = store.read(id).await?;
-    assert_eq!(tx, fetched);
+    let fetched = store.read(tx.id).await?;
+    assert_eq!(tx.inner, fetched.inner);
 
     println!("Listing all...");
     let all = store.list().await?;
     assert_eq!(all.len(), 1);
-    assert_eq!(&tx, &all[0]);
+    assert_eq!(&tx.inner, &all[0].inner);
 
     println!("Deleting by id...");
-    let res = store.delete(id).await?;
+    let res = store.delete(tx.id).await?;
     assert_eq!(res.rows_affected(), 1);
 
     println!("Checking delete successful");
     assert!(matches!(
-        store.read(id).await,
+        store.read(tx.id).await,
         Err(sqlx::Error::RowNotFound)
     ));
 

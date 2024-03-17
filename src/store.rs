@@ -2,8 +2,7 @@ use crate::traits::Schema;
 use itertools::Itertools;
 use sqlx::{
     postgres::{PgQueryResult, PgRow},
-    prelude::FromRow,
-    PgPool,
+    FromRow, PgPool, Row,
 };
 use std::marker::PhantomData;
 
@@ -21,6 +20,28 @@ use std::marker::PhantomData;
 pub struct CrudStore<E> {
     db: PgPool,
     entity: PhantomData<E>,
+}
+
+pub struct WithId<E> {
+    pub id: i64,
+    pub inner: E,
+}
+
+impl<E> WithId<E> {
+    pub fn new(inner: E, id: i64) -> Self {
+        WithId { inner, id }
+    }
+}
+
+impl<'r, E> FromRow<'r, PgRow> for WithId<E>
+where
+    E: FromRow<'r, PgRow>,
+{
+    fn from_row(row: &'r PgRow) -> sqlx::Result<Self> {
+        let inner = E::from_row(row)?;
+        let id = row.try_get("id")?;
+        Ok(Self { inner, id })
+    }
 }
 
 impl<E> CrudStore<E> {
@@ -70,7 +91,7 @@ where
     E: for<'r> FromRow<'r, PgRow> + Schema,
 {
     /// Create an object in the database and returns its `id`.
-    pub async fn create(&self, entity: &E) -> sqlx::Result<i64> {
+    pub async fn create(&self, entity: E) -> sqlx::Result<WithId<E>> {
         let table = E::TABLE_NAME;
         let cols = E::COLUMNS.iter().map(|col| col.0).join(", ");
         let values = (1..=E::COLUMNS.len()).map(|i| format!("${i}")).join(", ");
@@ -82,7 +103,7 @@ where
         }
 
         let (id,) = query.fetch_one(&self.db).await?;
-        Ok(id)
+        Ok(WithId { inner: entity, id })
     }
 }
 
@@ -96,17 +117,17 @@ where
     fn select_stmt(suffix: &str) -> String {
         let table = E::TABLE_NAME;
         let cols = E::COLUMNS.iter().map(|col| col.0).join(", ");
-        format!("SELECT {cols} FROM {table} {suffix}")
+        format!("SELECT id, {cols} FROM {table} {suffix}")
     }
 
     /// Reads and returns an object from the database
-    pub async fn read(&self, id: i64) -> sqlx::Result<E> {
+    pub async fn read(&self, id: i64) -> sqlx::Result<WithId<E>> {
         let sql = Self::select_stmt("WHERE id=$1");
         sqlx::query_as(&sql).bind(id).fetch_one(&self.db).await
     }
 
     /// Lists and return all object from the database
-    pub async fn list(&self) -> sqlx::Result<Vec<E>> {
+    pub async fn list(&self) -> sqlx::Result<Vec<WithId<E>>> {
         let sql = Self::select_stmt("ORDER BY id");
         sqlx::query_as(&sql).fetch_all(&self.db).await
     }
@@ -117,10 +138,10 @@ where
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 impl<E> CrudStore<E>
 where
-    E: for<'r> FromRow<'r, PgRow> + Schema,
+    E: for<'r> FromRow<'r, PgRow> + Schema + Unpin + Send,
 {
     /// Update an object in the database and returns its `id`.
-    pub async fn update(&self, id: i64, entity: &E) -> sqlx::Result<i64> {
+    pub async fn update(&self, entity: WithId<E>) -> sqlx::Result<WithId<E>> {
         let table = E::TABLE_NAME;
         let values = E::COLUMNS
             .iter()
@@ -129,15 +150,17 @@ where
             .map(|(i, col)| format!("{col}=${}", i + 1))
             .join(", ");
         let suffix = format!("WHERE id=${}", E::COLUMNS.len() + 1);
-        let sql = format!("UPDATE {table} SET {values} {suffix} RETURNING id");
+        let cols = E::COLUMNS.iter().map(|col| col.0).join(", ");
+        let sql = format!("UPDATE {table} SET {values} {suffix} RETURNING id, {cols}");
+
         let mut query = sqlx::query_as(&sql);
 
         for col in E::COLUMNS.iter().map(|col| col.0) {
-            query = entity.bind(query, col)
+            query = entity.inner.bind(query, col)
         }
 
-        let (id,) = query.bind(id).fetch_one(&self.db).await?;
-        Ok(id)
+        let entity = query.bind(entity.id).fetch_one(&self.db).await?;
+        Ok(entity)
     }
 }
 
