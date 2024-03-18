@@ -170,14 +170,14 @@ where
 #[cfg(feature = "axum")]
 mod handlers {
 
-    use crate::{traits::Schema, Store};
+    use crate::{traits::Schema, Store, WithId};
     use axum::{
         extract::{Path, State},
         http::StatusCode,
         response::IntoResponse,
         Json,
     };
-    use serde::Serialize;
+    use serde::{Deserialize, Serialize};
     use sqlx::{postgres::PgRow, FromRow};
 
     pub(crate) async fn list<E>(
@@ -193,16 +193,33 @@ mod handlers {
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
     }
 
-    // TODO: create
+    pub(crate) async fn create<E>(
+        State(store): State<Store<E>>,
+        Json(payload): Json<E>,
+    ) -> Result<impl IntoResponse, StatusCode>
+    where
+        E: Schema
+            + for<'r> FromRow<'r, PgRow>
+            + Unpin
+            + Send
+            + Serialize
+            + for<'de> Deserialize<'de>,
+    {
+        store
+            .create(payload)
+            .await
+            .map(|_| Json(()))
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+    }
 
     pub(crate) async fn read<E>(
         Path(id): Path<i64>,
-        State(todos): State<Store<E>>,
+        State(store): State<Store<E>>,
     ) -> Result<impl IntoResponse, StatusCode>
     where
         E: Schema + for<'r> FromRow<'r, PgRow> + Unpin + Send + Serialize,
     {
-        todos
+        store
             .read(id)
             .await
             .map(|e| Json(e.into_inner()))
@@ -211,27 +228,44 @@ mod handlers {
 
     pub(crate) async fn delete<E>(
         Path(id): Path<i64>,
-        State(todos): State<Store<E>>,
+        State(store): State<Store<E>>,
     ) -> Result<impl IntoResponse, StatusCode>
     where
         E: Schema + for<'r> FromRow<'r, PgRow> + Unpin + Send + Serialize,
     {
-        todos
+        store
             .delete(id)
             .await
             .map(|_| Json(()))
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
     }
 
-    // TODO: update
+    pub(crate) async fn update<E>(
+        State(store): State<Store<E>>,
+        Json(payload): Json<WithId<E>>,
+    ) -> Result<impl IntoResponse, StatusCode>
+    where
+        E: Schema
+            + for<'r> FromRow<'r, PgRow>
+            + Unpin
+            + Send
+            + Serialize
+            + for<'de> Deserialize<'de>,
+    {
+        store
+            .update(payload)
+            .await
+            .map(|_| Json(()))
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+    }
 
     pub(crate) async fn delete_all<E>(
-        State(todos): State<Store<E>>,
+        State(store): State<Store<E>>,
     ) -> Result<impl IntoResponse, StatusCode>
     where
         E: Schema + for<'r> FromRow<'r, PgRow> + Unpin + Send + Serialize,
     {
-        todos
+        store
             .delete_all()
             .await
             .map(|_| Json(()))
@@ -247,28 +281,31 @@ where
         + Unpin
         + Send
         + serde::Serialize
+        + for<'de> serde::Deserialize<'de>
         + Clone
         + Sync
         + 'static,
 {
     /// Converts the store into an [`axum::Router`]
     /// that will handle all standard REST request to realize CRUD operations
-    /// on the store.
+    /// on the store:
     ///
-    /// - `GET` on `/` will list all entities from the store in json format.
-    /// - `GET` on `/:id` will read the entity with the provided `id` from the store
-    ///   and return it in json format
-    /// - `DELETE` on `/` will delete all entities from the store.
-    /// - `DELETE` on `/:id` will delete the entity with the provided `id` from the store.
-    /// - TODO: POST and PUT
+    /// - `GET     /` will list all entities
+    /// - `POST    /` will create a new entity
+    /// - `DELETE  /` will delete all entities
+    /// - `GET     /:id` to retrieve one entity from the store
+    /// - `PUT     /:id` to update one entity in the store
+    /// - `DELETE  /:id` to delete one entity from the store
     pub fn into_axum_router<S>(self) -> axum::Router<S> {
         use axum::routing::*;
 
         Router::new()
             .route("/", get(handlers::list))
+            .route("/", post(handlers::create))
             .route("/", delete(handlers::delete_all))
             .route("/:id", delete(handlers::delete))
             .route("/:id", get(handlers::read))
+            .route("/:id", put(handlers::update))
             .with_state(self)
     }
 }
