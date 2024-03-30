@@ -10,4 +10,4 @@ mod store;
 /// module providing the [`Schema`] trait.
 pub mod traits;
 pub use miniorm_macros::Schema;
-pub use store::CrudStore;
+pub use store::Store;
