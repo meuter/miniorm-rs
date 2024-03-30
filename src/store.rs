@@ -17,21 +17,21 @@ use std::marker::PhantomData;
 ///
 /// Note that both can be derived automatically; [FromRow] using sqlx
 /// and [Schema] using this crate.
-pub struct CrudStore<'d, E> {
-    db: &'d PgPool,
+pub struct Store<E> {
+    db: PgPool,
     entity: PhantomData<E>,
 }
 
-impl<'d, E> CrudStore<'d, E> {
+impl<E> Store<E> {
     /// Create a new [`CrudStore`]
-    pub fn new(db: &'d PgPool) -> Self {
+    pub fn new(db: PgPool) -> Self {
         let entity = PhantomData;
         Self { db, entity }
     }
 }
 
 /// Table
-impl<'d, E> CrudStore<'d, E>
+impl<E> Store<E>
 where
     E: Schema,
 {
@@ -50,21 +50,21 @@ where
             .map(|col| format!("{} {}", col.0, col.1))
             .join(", ");
         let sql = format!("CREATE TABLE IF NOT EXISTS {table} ({id}, {cols})");
-        sqlx::query(&sql).execute(self.db).await
+        sqlx::query(&sql).execute(&self.db).await
     }
 
     /// Drops the table associated with the entity's [`Schema`]
     pub async fn drop_table(&self) -> sqlx::Result<PgQueryResult> {
         let table = E::TABLE_NAME;
         let sql = format!("DROP TABLE IF EXISTS {table}");
-        sqlx::query(&sql).execute(self.db).await
+        sqlx::query(&sql).execute(&self.db).await
     }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Create
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-impl<'d, E> CrudStore<'d, E>
+impl<E> Store<E>
 where
     E: for<'r> FromRow<'r, PgRow> + Schema,
 {
@@ -80,7 +80,7 @@ where
             query = entity.bind(query, col)
         }
 
-        let (id,) = query.fetch_one(self.db).await?;
+        let (id,) = query.fetch_one(&self.db).await?;
         Ok(id)
     }
 }
@@ -88,7 +88,7 @@ where
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // Read
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-impl<'d, E> CrudStore<'d, E>
+impl<E> Store<E>
 where
     E: for<'r> FromRow<'r, PgRow> + Schema + Unpin + Send,
 {
@@ -101,20 +101,20 @@ where
     /// Reads and returns an object from the database
     pub async fn read(&self, id: i64) -> sqlx::Result<E> {
         let sql = Self::select_stmt("WHERE id=$1");
-        sqlx::query_as(&sql).bind(id).fetch_one(self.db).await
+        sqlx::query_as(&sql).bind(id).fetch_one(&self.db).await
     }
 
     /// Lists and return all object from the database
     pub async fn list(&self) -> sqlx::Result<Vec<E>> {
         let sql = Self::select_stmt("ORDER BY id");
-        sqlx::query_as(&sql).fetch_all(self.db).await
+        sqlx::query_as(&sql).fetch_all(&self.db).await
     }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Update
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-impl<'d, E> CrudStore<'d, E>
+impl<E> Store<E>
 where
     E: for<'r> FromRow<'r, PgRow> + Schema,
 {
@@ -135,7 +135,7 @@ where
             query = entity.bind(query, col)
         }
 
-        let (id,) = query.bind(id).fetch_one(self.db).await?;
+        let (id,) = query.bind(id).fetch_one(&self.db).await?;
         Ok(id)
     }
 }
@@ -143,7 +143,7 @@ where
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Delete
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-impl<'d, E> CrudStore<'d, E>
+impl<E> Store<E>
 where
     E: Schema,
 {
@@ -155,12 +155,12 @@ where
     /// Delete the object of type `E` corresponding to the provided `id`
     pub async fn delete(&self, id: i64) -> sqlx::Result<PgQueryResult> {
         let sql = Self::delete_stmt("WHERE id=$1");
-        sqlx::query(&sql).bind(id).execute(self.db).await
+        sqlx::query(&sql).bind(id).execute(&self.db).await
     }
 
     /// Delete all objects of type E
     pub async fn delete_all(&self) -> sqlx::Result<u64> {
         let sql = Self::delete_stmt("");
-        Ok(sqlx::query(&sql).execute(self.db).await?.rows_affected())
+        Ok(sqlx::query(&sql).execute(&self.db).await?.rows_affected())
     }
 }

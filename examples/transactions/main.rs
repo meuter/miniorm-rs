@@ -69,7 +69,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let url = std::env::var("DATABASE_URL").expect("missing DATABASE_URL env");
     let db = sqlx::PgPool::connect(&url).await?;
-    let store = miniorm::CrudStore::new(&db);
+    let store = miniorm::Store::new(db);
 
     println!("Recreating table...");
     store.recreate_table().await?;
