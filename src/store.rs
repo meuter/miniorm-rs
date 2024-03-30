@@ -6,7 +6,7 @@ use sqlx::{
 };
 use std::marker::PhantomData;
 
-/// A `CrudStore` is a wrapper around the [`PgPool`] that allows
+/// A `Store` is a wrapper around a [`Pool`] that allows
 /// to perform basic, so-called "CRUD" operations.
 ///
 /// For these operation to be available, the underlying entity type
@@ -22,7 +22,7 @@ pub struct Store<DB: Database, E> {
 }
 
 impl<DB: Database, E> Store<DB, E> {
-    /// Create a new [`CrudStore`]
+    /// Create a new [`Store`]
     pub fn new(db: Pool<DB>) -> Self {
         let entity = PhantomData;
         Self { db, entity }
@@ -46,9 +46,7 @@ where
     /// Creates the table associated with the entity's [`Schema`]
     pub async fn create_table(&self) -> sqlx::Result<<DB as Database>::QueryResult> {
         let table = E::TABLE_NAME;
-
-        // TODO: this migh be postgres specific
-        let id = "id BIGSERIAL PRIMARY KEY";
+        let id = E::ID_DECLARATION;
         let cols = E::COLUMNS
             .iter()
             .map(|col| format!("{} {}", col.0, col.1))
