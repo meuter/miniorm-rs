@@ -31,6 +31,7 @@ pub type QueryAs<'q, DB, O> = sqlx::query::QueryAs<'q, DB, O, <DB as HasArgument
 /// }
 ///
 /// impl miniorm::traits::Schema<sqlx::Postgres> for Todo {
+///     const ID_DECLARATION: &'static str = "id BIGSERIAL PRIMARY KEY";
 ///     const TABLE_NAME: &'static str = "todo";
 ///     const COLUMNS: &'static [(&'static str, &'static str)] = &[
 ///         ("description", "TEXT NOT NULL"),
@@ -52,6 +53,9 @@ pub type QueryAs<'q, DB, O> = sqlx::query::QueryAs<'q, DB, O, <DB as HasArgument
 ///
 /// ```
 pub trait Schema<DB: Database> {
+    /// SQL declatation of the primary key
+    const ID_DECLARATION: &'static str;
+
     /// name of the table in the database
     const TABLE_NAME: &'static str;
 

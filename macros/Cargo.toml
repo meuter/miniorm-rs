@@ -14,5 +14,7 @@ repository = "https://github.com/meuter/miniorm-rs"
 proc-macro = true
 
 [dependencies]
+darling = "0.20.8"
+proc-macro2 = "1.0.79"
 quote = "1.0.35"
 syn = "2.0.52"

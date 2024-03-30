@@ -1,95 +1,159 @@
+use darling::{ast::Data, FromDeriveInput, FromField};
 use proc_macro::TokenStream;
-use quote::quote;
-use syn::{DeriveInput, Meta, MetaList};
+use quote::{format_ident, quote};
+use syn::{DeriveInput, Field, Ident, Meta};
 
-/// Derive macro to automatically derive the `Schema` trait.
-#[proc_macro_derive(Schema, attributes(column))]
-pub fn derive_schema(input: TokenStream) -> TokenStream {
-    let input: DeriveInput = syn::parse(input).unwrap();
-    let ident = input.ident;
-    let table_name = ident.to_string().to_lowercase();
+#[derive(Clone, Debug)]
+enum Database {
+    Postgres,
+    Sqlite,
+}
 
-    let fields = match input.data {
-        syn::Data::Struct(data) => data.fields,
-        syn::Data::Enum(_) => panic!("only structs are supported"),
-        syn::Data::Union(_) => panic!("only structs are supported"),
-    };
+impl Database {
+    fn to_token_stream(&self) -> proc_macro2::TokenStream {
+        let ident = format!("{self:#?}");
+        let ident = format_ident!("{}", ident);
+        quote!(sqlx::#ident)
+    }
 
-    let columns = fields.iter().map(|field| {
-        let field_ident = field.ident.as_ref().unwrap();
-        let field_str = field_ident.to_string();
-
-        let col_type = field
-            .attrs
-            .iter()
-            .filter_map(|attr| {
-                if let Meta::List(meta_list) = &attr.meta {
-                    let MetaList { path, tokens, .. } = meta_list;
-                    let is_column = path.segments.iter().any(|seg| seg.ident == "column");
-                    if is_column {
-                        let col_type = tokens.to_string();
-                        Some(col_type)
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
-            })
-            .next()
-            .unwrap_or_else(|| panic!("missing `#[column(<type>)]` for `{field_str}`, e.g. `#[column(TEXT NOT NULL)]`"));
-
-        quote! {
-            (#field_str, #col_type),
-        }
-    });
-
-    let bind_match_arms = fields.iter().map(|field| {
-        let field_ident = field.ident.as_ref().unwrap();
-        let field_str = field_ident.to_string();
-
-        let is_sqlx_json = field.attrs.iter().any(|attr| {
-            if let Meta::List(meta_list) = &attr.meta {
-                let MetaList { path, tokens, .. } = meta_list;
-                let is_sqlx = path.segments.iter().any(|seg| seg.ident == "sqlx");
-                let is_json = tokens.to_string() == "json";
-                is_sqlx && is_json
-            } else {
-                false
-            }
-        });
-
-        if is_sqlx_json {
-            quote! {
-                #field_str => query.bind(::serde_json::to_value(&self.#field_ident).unwrap()),
-            }
-        } else {
-            quote! {
-                #field_str => query.bind(self.#field_ident.clone()),
-            }
-        }
-    });
-
-    quote! {
-        impl ::miniorm::traits::Schema<sqlx::Postgres> for #ident {
-
-            const TABLE_NAME: &'static str = #table_name;
-
-            const COLUMNS: &'static [(&'static str, &'static str)] = &[
-                #(#columns)*
-            ];
-
-            fn bind<'q, O>(
-                &self,
-                query: ::miniorm::traits::QueryAs<'q, sqlx::Postgres, O>,
-                column_name: &'static str
-            ) -> ::miniorm::traits::QueryAs<'q, sqlx::Postgres, O> {
-                match column_name {
-                    #(#bind_match_arms)*
-                    _ => query,
-                }
-            }
+    fn id_declaration(&self) -> &str {
+        match self {
+            Database::Postgres => "id BIGSERIAL PRIMARY KEY",
+            Database::Sqlite => "id INTEGER PRIMARY KEY AUTOINCREMENT",
         }
     }
-    .into()
+}
+
+#[derive(Clone, Debug, FromField)]
+#[darling(attributes(miniorm, sqlx))]
+struct SchemaColumn {
+    ident: Option<Ident>,
+    postgres: Option<String>,
+    sqlite: Option<String>,
+    #[darling(default)]
+    json: bool,
+}
+
+#[derive(Debug, Clone)]
+struct WrappedSchemaColumn(SchemaColumn);
+
+impl FromField for WrappedSchemaColumn {
+    fn from_field(field: &Field) -> darling::Result<Self> {
+        let mut col = SchemaColumn::from_field(field)?;
+
+        // manually parse the #[postgres(...)], #[sqlite(...)] and
+        // #[mysql(...)] since there does not appear to be any way
+        // to do that directly with darling
+        for attr in &field.attrs {
+            if let Meta::List(list) = &attr.meta {
+                let schema = list.tokens.to_string();
+                if list.path.is_ident("postgres") {
+                    col.postgres = Some(schema);
+                } else if list.path.is_ident("sqlite") {
+                    col.sqlite = Some(schema)
+                } else if list.path.is_ident("column") {
+                    col.sqlite = Some(schema.clone());
+                    col.postgres = Some(schema);
+                }
+            }
+        }
+
+        Ok(Self(col))
+    }
+}
+
+#[derive(FromDeriveInput)]
+#[darling(attributes(miniorm), supports(struct_named))]
+struct SchemaArgs {
+    ident: Ident,
+    data: Data<(), WrappedSchemaColumn>,
+}
+
+impl SchemaArgs {
+    fn columns(&self) -> impl Iterator<Item = &SchemaColumn> {
+        match &self.data {
+            Data::Enum(_) => unreachable!(),
+            Data::Struct(fields) => fields.fields.iter().map(|wrapped| &wrapped.0),
+        }
+    }
+}
+
+impl SchemaArgs {
+    fn generate_schema_impl(&self, db: Database) -> proc_macro2::TokenStream {
+        let ident = &self.ident;
+        let table_name = ident.to_string().to_lowercase();
+
+        let id_declaration = db.id_declaration();
+
+        let field_str = self
+            .columns()
+            .map(|col| col.ident.as_ref().unwrap().to_string());
+        let col_type = self.columns().map(|col| match db {
+            Database::Postgres => col.postgres.as_ref().expect("missing postgres schema"),
+            Database::Sqlite => col.sqlite.as_ref().expect("missing sqlite schema"),
+        });
+
+        let value = self.columns().map(|col| {
+            let field_ident = col.ident.as_ref().unwrap();
+            if col.json {
+                quote!(::serde_json::to_value(&self.#field_ident).unwrap())
+            } else {
+                quote!(self.#field_ident.clone())
+            }
+        });
+        let field_str2 = self
+            .columns()
+            .map(|col| col.ident.as_ref().unwrap().to_string());
+
+        let db = db.to_token_stream();
+
+        quote! {
+            impl ::miniorm::traits::Schema<#db> for #ident {
+                const ID_DECLARATION: &'static str = #id_declaration;
+                const TABLE_NAME: &'static str = #table_name;
+                const COLUMNS: &'static [(&'static str, &'static str)] = &[
+                    #((#field_str, #col_type),)*
+                ];
+
+                fn bind<'q, O>(
+                    &self,
+                    query: ::miniorm::traits::QueryAs<'q, #db, O>,
+                    column_name: &'static str
+                ) -> ::miniorm::traits::QueryAs<'q, #db, O> {
+                    match column_name {
+                        #(#field_str2 => query.bind(#value),)*
+                        _ => query,
+                    }
+                }
+            }
+
+        }
+    }
+}
+
+/// Derive macro to automatically derive the `Schema` trait.
+#[proc_macro_derive(Schema, attributes(miniorm, sqlx, column, postgres, sqlite))]
+pub fn derive_schema(input: TokenStream) -> TokenStream {
+    let input: DeriveInput = syn::parse(input).unwrap();
+    let args = SchemaArgs::from_derive_input(&input).expect("could not parse args");
+
+    let mut result = quote!();
+
+    if args.columns().any(|col| col.postgres.is_some()) {
+        let postgres_impl = args.generate_schema_impl(Database::Postgres);
+        result = quote! {
+            #result
+            #postgres_impl
+        }
+    }
+
+    if args.columns().any(|col| col.sqlite.is_some()) {
+        let sqlite_impl = args.generate_schema_impl(Database::Sqlite);
+        result = quote! {
+            #result
+            #sqlite_impl
+        }
+    }
+
+    result.into()
 }
