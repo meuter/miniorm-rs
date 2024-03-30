@@ -23,16 +23,19 @@ default = ["postgres"]
 full = ["postgres", "sqlite"]
 postgres = ["sqlx/postgres"]
 sqlite = ["sqlx/sqlite"]
+mysql = ["sqlx/mysql"]
 
 [dev-dependencies]
-dotenv = "0.15.0"
-tokio = { version = "1.36.0", features = ["full"] }
 sqlx = { version = "0.7.4", features = [
     "runtime-tokio",
     "chrono",
     "rust_decimal",
     "sqlite",
+    "postgres",
+    "mysql",
 ] }
+dotenv = "0.15.0"
+tokio = { version = "1.36.0", features = ["full"] }
 rust_decimal = "1.34.3"
 rust_decimal_macros = "1.34.2"
 serde = { version = "1.0.197", features = ["derive"] }

@@ -67,7 +67,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv::dotenv().ok();
 
     println!("== POSTGRES ==");
-    let url = std::env::var("DATABASE_URL").expect("missing DATABASE_URL env");
+    let url = std::env::var("POSTGRES_URL").expect("POSTGRES_URL env variable not set");
     let db = sqlx::PgPool::connect(&url).await?;
     let store = miniorm::Store::new(db);
 

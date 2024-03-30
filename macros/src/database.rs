@@ -4,6 +4,7 @@ use quote::{format_ident, quote};
 pub enum Database {
     Postgres,
     Sqlite,
+    MySql,
 }
 
 impl Database {
@@ -17,6 +18,7 @@ impl Database {
         match self {
             Database::Postgres => "id BIGSERIAL PRIMARY KEY",
             Database::Sqlite => "id INTEGER PRIMARY KEY AUTOINCREMENT",
+            Database::MySql => "id INT AUTO_INCREMENT NOT NULL PRIMARY KEY",
         }
     }
 }

@@ -35,6 +35,7 @@ impl SchemaArgs {
         let col_type = self.columns().map(|col| match db {
             Database::Postgres => col.postgres(),
             Database::Sqlite => col.sqlite(),
+            Database::MySql => col.mysql(),
         });
         let db = db.to_token_stream();
 
@@ -68,7 +69,6 @@ impl SchemaArgs {
                     }
                 }
             }
-
         }
     }
 }

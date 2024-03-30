@@ -1,12 +1,19 @@
 version: "3"
 
 services:
-  db:
+  postgres:
     env_file: .env
-    container_name: miniorm-test-db
+    container_name: miniorm-test-postgres
     image: postgres:latest
     ports:
       - "5432:5432"
+
+  mysql:
+    env_file: .env
+    container_name: miniorm-test-mysql
+    image: mysql:latest
+    ports:
+      - "3306:3306"
 
 
 

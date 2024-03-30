@@ -8,6 +8,7 @@ struct InnerColumn {
     ident: Option<Ident>,
     postgres: Option<String>,
     sqlite: Option<String>,
+    mysql: Option<String>,
     rename: Option<String>,
     #[darling(default)]
     json: bool,
@@ -32,9 +33,12 @@ impl FromField for Column {
                     col.postgres = Some(schema);
                 } else if list.path.is_ident("sqlite") {
                     col.sqlite = Some(schema)
+                } else if list.path.is_ident("mysql") {
+                    col.mysql = Some(schema)
                 } else if list.path.is_ident("column") {
                     col.sqlite = Some(schema.clone());
-                    col.postgres = Some(schema);
+                    col.postgres = Some(schema.clone());
+                    col.mysql = Some(schema);
                 }
             }
         }
@@ -73,6 +77,19 @@ impl Column {
         self.0.postgres.as_ref().unwrap_or_else(|| {
             panic!(
                 "missing #[postgres(...)] declaration for field '{}'",
+                self.ident()
+            )
+        })
+    }
+
+    pub fn has_mysql(&self) -> bool {
+        self.0.mysql.is_some()
+    }
+
+    pub fn mysql(&self) -> &String {
+        self.0.mysql.as_ref().unwrap_or_else(|| {
+            panic!(
+                "missing #[mysql(...)] declaration for field '{}'",
                 self.ident()
             )
         })
