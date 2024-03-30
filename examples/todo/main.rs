@@ -11,31 +11,6 @@ struct Todo {
     done: bool,
 }
 
-struct Todo2 {
-    description: String,
-    done: bool,
-}
-
-impl miniorm::traits::Schema for Todo2 {
-    const TABLE_NAME: &'static str = "todo";
-    const COLUMNS: &'static [(&'static str, &'static str)] = &[
-        ("description", "TEXT NOT NULL"),
-        ("done", "BOOLEAN NOT NULL"),
-    ];
-
-    fn bind<'q, O>(
-        &self,
-        query: miniorm::traits::Query<'q, O>,
-        column_name: &'static str,
-    ) -> miniorm::traits::Query<'q, O> {
-        match column_name {
-            "description" => query.bind(self.description.clone()),
-            "done" => query.bind(self.done),
-            _ => query,
-        }
-    }
-}
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv::dotenv().ok();
