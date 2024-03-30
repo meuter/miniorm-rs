@@ -80,15 +80,21 @@ where
         let table = E::TABLE_NAME;
         let cols = E::COLUMNS.iter().map(|col| col.0).join(", ");
         let values = (1..=E::COLUMNS.len()).map(|i| format!("${i}")).join(", ");
-        let sql = format!("INSERT INTO {table} ({cols}) VALUES ({values}) RETURNING id");
-        let mut query = sqlx::query_as(&sql);
+        if DB::NAME == "MySql" {
+            // TODO: RETURNING id does not work in MySql, need to use SELECT LAST_INSERT_ID();
+            // https://dev.mysql.com/doc/refman/8.0/en/information-functions.html#function_last-insert-id
+            todo!();
+        } else {
+            let sql = format!("INSERT INTO {table} ({cols}) VALUES ({values}) RETURNING id");
+            let mut query = sqlx::query_as(&sql);
 
-        for col in E::COLUMNS.iter().map(|col| col.0) {
-            query = entity.bind(query, col)
+            for col in E::COLUMNS.iter().map(|col| col.0) {
+                query = entity.bind(query, col)
+            }
+
+            let (id,) = query.fetch_one(&self.db).await?;
+            Ok(id)
         }
-
-        let (id,) = query.fetch_one(&self.db).await?;
-        Ok(id)
     }
 }
 

@@ -21,4 +21,10 @@ jobs:
         run: cargo build --workspace --all-features
       - name: Build without any feature
         run: cargo build --workspace --no-default-features
+      - name: Build only with Postgres
+        run: cargo build --workspace --no-default-features -F postgres
+      - name: Build only with Sqlite
+        run: cargo build --workspace --no-default-features -F sqlite
+      - name: Build only with MySql
+        run: cargo build --workspace --no-default-features -F mysql
 

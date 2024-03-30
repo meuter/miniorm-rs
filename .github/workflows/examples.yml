@@ -6,20 +6,31 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  todo:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Start postgres sandbox
-        run: docker compose up -d
-      - name: Transactions (Postgres)
-        run: cargo run --example transactions
-      - name: Stop  postgres sandbox
-        run: docker compose down
-  transactions:
+  todos:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - name: Todo (Sqlite)
         run: cargo run --example todo
+  transactions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Start Postgres sandbox
+        run: docker compose up postgres -d
+      - name: Transactions (Postgres)
+        run: cargo run --example transactions
+      - name: Stop Postgres sandbox
+        run: docker compose down
+  pokemon:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Start MySql sandbox
+        run: docker compose up mysql -d
+      - name: Pokemon (MySql)
+        run: cargo run --example pokemon
+      - name: Stop MySql sandbox
+        run: docker compose down
+
 
