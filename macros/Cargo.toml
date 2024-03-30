@@ -20,5 +20,5 @@ quote = "1.0.35"
 syn = "2.0.52"
 
 [dev-dependencies]
-miniorm = { path = ".." }
-sqlx = { version = "0.7.4", features = ["sqlite", "postgres"] }
+miniorm = { path = "..", features = ["sqlite", "postgres"] }
+sqlx = { version = "0.7.4" }

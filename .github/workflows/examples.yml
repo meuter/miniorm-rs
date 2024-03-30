@@ -1,0 +1,25 @@
+name: Examples
+
+on: [push, pull_request]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  todo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Start postgres sandbox
+        run: docker compose up -d
+      - name: Transactions (Postgres)
+        run: cargo run --example transactions
+      - name: Stop  postgres sandbox
+        run: docker compose down
+  transactions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Todo (Sqlite)
+        run: cargo run --example todo
+
