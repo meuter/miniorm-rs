@@ -52,10 +52,4 @@ struct Todo {
 
 ```
 
-For more complete examples, see:
-- [todo example](examples/todo/src/main.rs) for a simple example.
-- [stock transaction example](examples/transactions/src/main.rs)
-  for a more complex example, where certain fields are stored as
-  [`JSONB`](https://www.postgresql.org/docs/current/datatype-json.html) column
-  using [`serde_json`](https://docs.rs/serde_json/latest/serde_json/).
-
+For more complete examples, see the `examples` folder.
