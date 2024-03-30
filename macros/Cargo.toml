@@ -18,3 +18,7 @@ darling = "0.20.8"
 proc-macro2 = "1.0.79"
 quote = "1.0.35"
 syn = "2.0.52"
+
+[dev-dependencies]
+miniorm = { path = ".." }
+sqlx = { version = "0.7.4", features = ["sqlite", "postgres"] }

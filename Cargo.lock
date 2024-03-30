@@ -821,8 +821,10 @@ name = "miniorm-macros"
 version = "0.4.0"
 dependencies = [
  "darling",
+ "miniorm",
  "proc-macro2",
  "quote",
+ "sqlx",
  "syn 2.0.57",
 ]
 
