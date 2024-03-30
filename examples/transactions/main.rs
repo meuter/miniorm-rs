@@ -1,4 +1,3 @@
-use dotenv::dotenv;
 use iso_currency::Currency;
 use miniorm::Schema;
 use rust_decimal::Decimal;
@@ -32,41 +31,42 @@ pub enum Operation {
 
 #[derive(Clone, Debug, Eq, PartialEq, FromRow, Schema)]
 pub struct Transaction {
-    #[column(DATE NOT NULL)]
+    #[postgres(DATE NOT NULL)]
     pub date: NaiveDate,
 
     #[sqlx(json)]
-    #[column(JSONB NOT NULL)]
+    #[postgres(JSONB NOT NULL)]
     pub operation: Operation,
 
     #[sqlx(json)]
-    #[column(JSONB NOT NULL)]
+    #[postgres(JSONB NOT NULL)]
     pub instrument: Instrument,
 
-    #[column(DECIMAL NOT NULL)]
+    #[postgres(DECIMAL NOT NULL)]
     pub quantity: Decimal,
 
-    #[column(DECIMAL NOT NULL)]
+    #[postgres(DECIMAL NOT NULL)]
     pub unit_price: Decimal,
 
-    #[column(DECIMAL NOT NULL)]
+    #[postgres(DECIMAL NOT NULL)]
     pub taxes: Decimal,
 
-    #[column(DECIMAL NOT NULL)]
+    #[postgres(DECIMAL NOT NULL)]
     pub fees: Decimal,
 
     #[sqlx(json)]
-    #[column(JSONB NOT NULL)]
+    #[postgres(JSONB NOT NULL)]
     pub currency: Currency,
 
-    #[column(DECIMAL NOT NULL)]
+    #[postgres(DECIMAL NOT NULL)]
     pub exchange_rate: Decimal,
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    dotenv()?;
+    dotenv::dotenv().ok();
 
+    println!("== POSTGRES ==");
     let url = std::env::var("DATABASE_URL").expect("missing DATABASE_URL env");
     let db = sqlx::PgPool::connect(&url).await?;
     let store = miniorm::Store::new(db);
@@ -104,8 +104,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     assert_eq!(&tx, &all[0]);
 
     println!("Deleting by id...");
-    let res = store.delete(id).await?;
-    assert_eq!(res.rows_affected(), 1);
+    store.delete(id).await?;
 
     println!("Checking delete successful");
     assert!(matches!(
