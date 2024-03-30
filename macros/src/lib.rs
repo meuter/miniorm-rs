@@ -18,18 +18,22 @@ pub fn derive_entity(input: TokenStream) -> TokenStream {
     let mut result = quote!();
 
     if args.columns().any(|col| col.has_postgres()) {
-        let postgres_impl = args.generate_schema_impl(Database::Postgres);
+        let schema_impl = args.generate_schema_impl(Database::Postgres);
+        let bind_impl = args.generate_bind_impl(Database::Postgres);
         result = quote! {
             #result
-            #postgres_impl
+            #schema_impl
+            #bind_impl
         }
     }
 
     if args.columns().any(|col| col.has_sqlite()) {
-        let sqlite_impl = args.generate_schema_impl(Database::Sqlite);
+        let schema_impl = args.generate_schema_impl(Database::Sqlite);
+        let bind_impl = args.generate_bind_impl(Database::Sqlite);
         result = quote! {
             #result
-            #sqlite_impl
+            #schema_impl
+            #bind_impl
         }
     }
 

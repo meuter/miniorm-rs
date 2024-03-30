@@ -1,4 +1,5 @@
 use darling::FromField;
+use quote::quote;
 use syn::{Field, Ident, Meta};
 
 #[derive(Clone, Debug, FromField)]
@@ -55,6 +56,15 @@ impl Column {
             .unwrap_or(self.ident().to_string())
     }
 
+    pub fn value(&self) -> proc_macro2::TokenStream {
+        let field_ident = self.ident();
+        if self.0.json {
+            quote!(::serde_json::to_value(&self.#field_ident).unwrap())
+        } else {
+            quote!(self.#field_ident.clone())
+        }
+    }
+
     pub fn has_postgres(&self) -> bool {
         self.0.postgres.is_some()
     }
@@ -79,10 +89,6 @@ impl Column {
                 self.ident()
             )
         })
-    }
-
-    pub fn json(&self) -> bool {
-        self.0.json
     }
 
     pub fn skip(&self) -> bool {
