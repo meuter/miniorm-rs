@@ -1,8 +1,8 @@
 use sqlx::database::HasArguments;
-use sqlx::{query::QueryAs, Postgres};
+use sqlx::Database;
 
-/// Convenience alias to [`QueryAs`] specialized [`Postgres`]
-pub type Query<'q, O> = QueryAs<'q, Postgres, O, <Postgres as HasArguments<'q>>::Arguments>;
+/// Convenience alias to [`QueryAs`]
+pub type QueryAs<'q, DB, O> = sqlx::query::QueryAs<'q, DB, O, <DB as HasArguments<'q>>::Arguments>;
 
 /// Trait that can derived by a struct to specify the database scema
 /// that should be used to store objects of that type.
@@ -30,7 +30,7 @@ pub type Query<'q, O> = QueryAs<'q, Postgres, O, <Postgres as HasArguments<'q>>:
 ///     done: bool,
 /// }
 ///
-/// impl miniorm::traits::Schema for Todo {
+/// impl miniorm::traits::Schema<sqlx::Postgres> for Todo {
 ///     const TABLE_NAME: &'static str = "todo";
 ///     const COLUMNS: &'static [(&'static str, &'static str)] = &[
 ///         ("description", "TEXT NOT NULL"),
@@ -39,9 +39,9 @@ pub type Query<'q, O> = QueryAs<'q, Postgres, O, <Postgres as HasArguments<'q>>:
 ///
 ///     fn bind<'q, O>(
 ///         &self,
-///         query: miniorm::traits::Query<'q, O>,
+///         query: miniorm::traits::QueryAs<'q, sqlx::Postgres, O>,
 ///         column_name: &'static str,
-///     ) -> miniorm::traits::Query<'q, O> {
+///     ) -> miniorm::traits::QueryAs<'q, sqlx::Postgres, O> {
 ///         match column_name {
 ///             "description" => query.bind(self.description.clone()),
 ///             "done" => query.bind(self.done.clone()),
@@ -51,7 +51,7 @@ pub type Query<'q, O> = QueryAs<'q, Postgres, O, <Postgres as HasArguments<'q>>:
 /// }
 ///
 /// ```
-pub trait Schema {
+pub trait Schema<DB: Database> {
     /// name of the table in the database
     const TABLE_NAME: &'static str;
 
@@ -59,5 +59,9 @@ pub trait Schema {
     const COLUMNS: &'static [(&'static str, &'static str)];
 
     /// binds a specific column using the provided query.
-    fn bind<'q, O>(&self, query: Query<'q, O>, column_name: &'static str) -> Query<'q, O>;
+    fn bind<'q, O>(
+        &self,
+        query: QueryAs<'q, DB, O>,
+        column_name: &'static str,
+    ) -> QueryAs<'q, DB, O>;
 }
