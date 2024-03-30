@@ -1,8 +1,8 @@
-use miniorm::Schema;
+use miniorm::Entity;
 use sqlx::FromRow;
 
 /// A todo including a `description` and a `done` flag
-#[derive(Debug, Clone, Eq, PartialEq, FromRow, Schema)]
+#[derive(Debug, Clone, Eq, PartialEq, FromRow, Entity)]
 struct Todo {
     #[sqlite(TEXT NOT NULL)]
     description: String,

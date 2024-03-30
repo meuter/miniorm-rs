@@ -32,16 +32,16 @@ to create a `CrudStore` that provide the so-called "CRUD" operations:
 - (U)pdate
 - (D)elete
 
-At the moment, `miniorm` only supports the postgres backend. Other backends
-could be provided in the future.
+At the moment, `miniorm` only supports the postgres and sqlite backend. 
+The mysql backend should be supported soon.
 
 # Examples
 
 ```rust
 use sqlx::FromRow;
-use miniorm::Schema;
+use miniorm::Entity;
 
-#[derive(Debug, Clone, Eq, PartialEq, FromRow, Schema)]
+#[derive(Debug, Clone, Eq, PartialEq, FromRow, Entity)]
 struct Todo {
     #[column(TEXT NOT NULL)]
     description: String,
