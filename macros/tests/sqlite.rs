@@ -4,14 +4,14 @@ mod table_name {
     fn default() {
         #[derive(miniorm::Schema)]
         struct Point {
-            #[postgres(INTEGER NOT NULL)]
+            #[sqlite(INTEGER NOT NULL)]
             x: i64,
-            #[postgres(INTEGER NOT NULL)]
+            #[sqlite(INTEGER NOT NULL)]
             y: i64,
         }
 
         assert_eq!(
-            <Point as miniorm::traits::Schema<sqlx::Postgres>>::TABLE_NAME,
+            <Point as miniorm::traits::Schema<sqlx::Sqlite>>::TABLE_NAME,
             "point"
         );
     }
@@ -21,14 +21,14 @@ mod table_name {
         #[derive(miniorm::Schema)]
         #[sqlx(rename = "coord")]
         struct Point {
-            #[postgres(INTEGER NOT NULL)]
+            #[sqlite(INTEGER NOT NULL)]
             x: i64,
-            #[postgres(INTEGER NOT NULL)]
+            #[sqlite(INTEGER NOT NULL)]
             y: i64,
         }
 
         assert_eq!(
-            <Point as miniorm::traits::Schema<sqlx::Postgres>>::TABLE_NAME,
+            <Point as miniorm::traits::Schema<sqlx::Sqlite>>::TABLE_NAME,
             "coord"
         );
     }
@@ -40,15 +40,15 @@ mod id_declaration {
     fn nominal() {
         #[derive(miniorm::Schema)]
         struct Point {
-            #[postgres(INTEGER NOT NULL)]
+            #[sqlite(INTEGER NOT NULL)]
             x: i64,
-            #[postgres(INTEGER NOT NULL)]
+            #[sqlite(INTEGER NOT NULL)]
             y: i64,
         }
 
         assert_eq!(
-            <Point as miniorm::traits::Schema<sqlx::Postgres>>::ID_DECLARATION,
-            "id BIGSERIAL PRIMARY KEY"
+            <Point as miniorm::traits::Schema<sqlx::Sqlite>>::ID_DECLARATION,
+            "id INTEGER PRIMARY KEY AUTOINCREMENT"
         );
     }
 }
@@ -59,13 +59,13 @@ mod columns {
     fn default() {
         #[derive(miniorm::Schema)]
         struct Point {
-            #[postgres(XXX YYY)]
+            #[sqlite(XXX YYY)]
             x: i64,
-            #[postgres(AAA BBB)]
+            #[sqlite(AAA BBB)]
             y: i64,
         }
 
-        let columns = <Point as miniorm::traits::Schema<sqlx::Postgres>>::COLUMNS;
+        let columns = <Point as miniorm::traits::Schema<sqlx::Sqlite>>::COLUMNS;
 
         assert_eq!(columns.len(), 2);
         assert_eq!(columns[0].0, "x");
@@ -78,14 +78,14 @@ mod columns {
     fn skip() {
         #[derive(miniorm::Schema)]
         struct Point {
-            #[postgres(XXX YYY)]
+            #[sqlite(XXX YYY)]
             x: i64,
             #[sqlx(skip)]
             #[allow(unused)]
             y: i64,
         }
 
-        let columns = <Point as miniorm::traits::Schema<sqlx::Postgres>>::COLUMNS;
+        let columns = <Point as miniorm::traits::Schema<sqlx::Sqlite>>::COLUMNS;
 
         assert_eq!(columns.len(), 1);
         assert_eq!(columns[0].0, "x");
@@ -96,14 +96,14 @@ mod columns {
     fn rename() {
         #[derive(miniorm::Schema)]
         struct Point {
-            #[postgres(XXX YYY)]
+            #[sqlite(XXX YYY)]
             x: i64,
-            #[postgres(AAA BBB)]
+            #[sqlite(AAA BBB)]
             #[sqlx(rename = "z")]
             y: i64,
         }
 
-        let columns = <Point as miniorm::traits::Schema<sqlx::Postgres>>::COLUMNS;
+        let columns = <Point as miniorm::traits::Schema<sqlx::Sqlite>>::COLUMNS;
 
         assert_eq!(columns.len(), 2);
         assert_eq!(columns[0].0, "x");
