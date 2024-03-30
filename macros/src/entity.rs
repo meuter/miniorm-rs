@@ -51,18 +51,20 @@ impl SchemaArgs {
         let db = db.to_token_stream();
 
         quote! {
-            impl ::miniorm::traits::Schema<#db> for #ident {
+            impl ::miniorm::Schema<#db> for #ident {
                 const ID_DECLARATION: &'static str = #id_declaration;
                 const TABLE_NAME: &'static str = #table_name;
                 const COLUMNS: &'static [(&'static str, &'static str)] = &[
                     #((#field_str, #col_type),)*
                 ];
+            }
 
+            impl ::miniorm::Bind<#db> for #ident {
                 fn bind<'q, O>(
                     &self,
-                    query: ::miniorm::traits::QueryAs<'q, #db, O>,
+                    query: ::miniorm::QueryAs<'q, #db, O>,
                     column_name: &'static str
-                ) -> ::miniorm::traits::QueryAs<'q, #db, O> {
+                ) -> ::miniorm::QueryAs<'q, #db, O> {
                     match column_name {
                         #(#field_str2 => query.bind(#value),)*
                         _ => query,

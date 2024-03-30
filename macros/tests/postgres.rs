@@ -1,8 +1,12 @@
+use miniorm::{Entity, Schema};
+use sqlx::Postgres;
+
 mod table_name {
+    use super::*;
 
     #[test]
     fn default() {
-        #[derive(miniorm::Schema)]
+        #[derive(Entity)]
         struct Point {
             #[postgres(INTEGER NOT NULL)]
             x: i64,
@@ -10,15 +14,12 @@ mod table_name {
             y: i64,
         }
 
-        assert_eq!(
-            <Point as miniorm::traits::Schema<sqlx::Postgres>>::TABLE_NAME,
-            "point"
-        );
+        assert_eq!(<Point as Schema<Postgres>>::TABLE_NAME, "point");
     }
 
     #[test]
     fn rename() {
-        #[derive(miniorm::Schema)]
+        #[derive(Entity)]
         #[sqlx(rename = "coord")]
         struct Point {
             #[postgres(INTEGER NOT NULL)]
@@ -27,18 +28,16 @@ mod table_name {
             y: i64,
         }
 
-        assert_eq!(
-            <Point as miniorm::traits::Schema<sqlx::Postgres>>::TABLE_NAME,
-            "coord"
-        );
+        assert_eq!(<Point as Schema<Postgres>>::TABLE_NAME, "coord");
     }
 }
 
 mod id_declaration {
+    use super::*;
 
     #[test]
     fn nominal() {
-        #[derive(miniorm::Schema)]
+        #[derive(Entity)]
         struct Point {
             #[postgres(INTEGER NOT NULL)]
             x: i64,
@@ -47,17 +46,18 @@ mod id_declaration {
         }
 
         assert_eq!(
-            <Point as miniorm::traits::Schema<sqlx::Postgres>>::ID_DECLARATION,
+            <Point as Schema<Postgres>>::ID_DECLARATION,
             "id BIGSERIAL PRIMARY KEY"
         );
     }
 }
 
 mod columns {
+    use super::*;
 
     #[test]
     fn default() {
-        #[derive(miniorm::Schema)]
+        #[derive(Entity)]
         struct Point {
             #[postgres(XXX YYY)]
             x: i64,
@@ -65,7 +65,7 @@ mod columns {
             y: i64,
         }
 
-        let columns = <Point as miniorm::traits::Schema<sqlx::Postgres>>::COLUMNS;
+        let columns = <Point as Schema<Postgres>>::COLUMNS;
 
         assert_eq!(columns.len(), 2);
         assert_eq!(columns[0].0, "x");
@@ -76,7 +76,7 @@ mod columns {
 
     #[test]
     fn skip() {
-        #[derive(miniorm::Schema)]
+        #[derive(Entity)]
         struct Point {
             #[postgres(XXX YYY)]
             x: i64,
@@ -85,7 +85,7 @@ mod columns {
             y: i64,
         }
 
-        let columns = <Point as miniorm::traits::Schema<sqlx::Postgres>>::COLUMNS;
+        let columns = <Point as Schema<Postgres>>::COLUMNS;
 
         assert_eq!(columns.len(), 1);
         assert_eq!(columns[0].0, "x");
@@ -94,7 +94,7 @@ mod columns {
 
     #[test]
     fn rename() {
-        #[derive(miniorm::Schema)]
+        #[derive(Entity)]
         struct Point {
             #[postgres(XXX YYY)]
             x: i64,
@@ -103,7 +103,7 @@ mod columns {
             y: i64,
         }
 
-        let columns = <Point as miniorm::traits::Schema<sqlx::Postgres>>::COLUMNS;
+        let columns = <Point as Schema<Postgres>>::COLUMNS;
 
         assert_eq!(columns.len(), 2);
         assert_eq!(columns[0].0, "x");

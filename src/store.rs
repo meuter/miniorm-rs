@@ -1,4 +1,4 @@
-use crate::traits::Schema;
+use crate::traits::{Bind, Schema};
 use itertools::Itertools;
 use sqlx::{
     database::HasArguments, ColumnIndex, Database, Decode, Encode, Executor, FromRow,
@@ -68,7 +68,7 @@ where
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 impl<DB, E> Store<DB, E>
 where
-    E: for<'r> FromRow<'r, <DB as Database>::Row> + Schema<DB>,
+    E: for<'r> FromRow<'r, <DB as Database>::Row> + Schema<DB> + Bind<DB>,
     DB: Database,
     for<'c> &'c mut <DB as sqlx::Database>::Connection: Executor<'c, Database = DB>,
     for<'c> <DB as HasArguments<'c>>::Arguments: IntoArguments<'c, DB>,
@@ -131,7 +131,7 @@ where
     DB: Database,
     for<'c> &'c mut <DB as sqlx::Database>::Connection: Executor<'c, Database = DB>,
     for<'c> <DB as HasArguments<'c>>::Arguments: IntoArguments<'c, DB>,
-    E: for<'r> FromRow<'r, <DB as Database>::Row> + Schema<DB>,
+    E: for<'r> FromRow<'r, <DB as Database>::Row> + Schema<DB> + Bind<DB>,
     for<'c> i64: Type<DB> + Decode<'c, DB> + Encode<'c, DB>,
     usize: ColumnIndex<<DB as sqlx::Database>::Row>,
 {

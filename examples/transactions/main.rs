@@ -1,5 +1,5 @@
 use iso_currency::Currency;
-use miniorm::Schema;
+use miniorm::Entity;
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
 use serde::{Deserialize, Serialize};
@@ -29,7 +29,7 @@ pub enum Operation {
     Withdrawal,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, FromRow, Schema)]
+#[derive(Clone, Debug, Eq, PartialEq, FromRow, Entity)]
 pub struct Transaction {
     #[postgres(DATE NOT NULL)]
     pub date: NaiveDate,

@@ -6,8 +6,9 @@
 #![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/README.md"))]
 
 mod store;
+mod traits;
 
-/// module providing the [`Schema`] trait.
-pub mod traits;
-pub use miniorm_macros::Schema;
+pub use miniorm_macros::Entity;
 pub use store::Store;
+pub use traits::{Bind, QueryAs, Schema};
+
