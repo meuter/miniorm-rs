@@ -63,13 +63,22 @@ impl FromField for WrappedSchemaColumn {
 }
 
 #[derive(FromDeriveInput)]
-#[darling(attributes(miniorm), supports(struct_named))]
+#[darling(attributes(miniorm, sqlx), supports(struct_named))]
 struct SchemaArgs {
     ident: Ident,
+    rename: Option<String>,
     data: Data<(), WrappedSchemaColumn>,
 }
 
 impl SchemaArgs {
+    fn table_name(&self) -> String {
+        if let Some(name) = &self.rename {
+            name.clone()
+        } else {
+            self.ident.to_string().to_lowercase()
+        }
+    }
+
     fn columns(&self) -> impl Iterator<Item = &SchemaColumn> {
         match &self.data {
             Data::Enum(_) => unreachable!(),
@@ -81,7 +90,7 @@ impl SchemaArgs {
 impl SchemaArgs {
     fn generate_schema_impl(&self, db: Database) -> proc_macro2::TokenStream {
         let ident = &self.ident;
-        let table_name = ident.to_string().to_lowercase();
+        let table_name = self.table_name();
 
         let id_declaration = db.id_declaration();
 
