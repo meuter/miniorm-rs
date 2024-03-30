@@ -71,7 +71,7 @@ pub fn derive_schema(input: TokenStream) -> TokenStream {
     });
 
     quote! {
-        impl ::miniorm::traits::Schema for #ident {
+        impl ::miniorm::traits::Schema<sqlx::Postgres> for #ident {
 
             const TABLE_NAME: &'static str = #table_name;
 
@@ -81,9 +81,9 @@ pub fn derive_schema(input: TokenStream) -> TokenStream {
 
             fn bind<'q, O>(
                 &self,
-                query: ::miniorm::traits::Query<'q, O>,
+                query: ::miniorm::traits::QueryAs<'q, sqlx::Postgres, O>,
                 column_name: &'static str
-            ) -> ::miniorm::traits::Query<'q, O> {
+            ) -> ::miniorm::traits::QueryAs<'q, sqlx::Postgres, O> {
                 match column_name {
                     #(#bind_match_arms)*
                     _ => query,

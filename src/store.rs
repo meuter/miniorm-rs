@@ -1,9 +1,8 @@
 use crate::traits::Schema;
 use itertools::Itertools;
 use sqlx::{
-    postgres::{PgQueryResult, PgRow},
-    prelude::FromRow,
-    PgPool,
+    database::HasArguments, ColumnIndex, Database, Decode, Encode, Executor, FromRow,
+    IntoArguments, Pool, Type,
 };
 use std::marker::PhantomData;
 
@@ -17,33 +16,38 @@ use std::marker::PhantomData;
 ///
 /// Note that both can be derived automatically; [FromRow] using sqlx
 /// and [Schema] using this crate.
-pub struct Store<E> {
-    db: PgPool,
+pub struct Store<DB: Database, E> {
+    db: Pool<DB>,
     entity: PhantomData<E>,
 }
 
-impl<E> Store<E> {
+impl<DB: Database, E> Store<DB, E> {
     /// Create a new [`CrudStore`]
-    pub fn new(db: PgPool) -> Self {
+    pub fn new(db: Pool<DB>) -> Self {
         let entity = PhantomData;
         Self { db, entity }
     }
 }
 
 /// Table
-impl<E> Store<E>
+impl<DB, E> Store<DB, E>
 where
-    E: Schema,
+    E: Schema<DB>,
+    DB: Database,
+    for<'c> &'c mut <DB as sqlx::Database>::Connection: Executor<'c, Database = DB>,
+    for<'c> <DB as HasArguments<'c>>::Arguments: IntoArguments<'c, DB>,
 {
     /// Recreates the table associated with the entity's [`Schema`]
-    pub async fn recreate_table(&self) -> sqlx::Result<PgQueryResult> {
+    pub async fn recreate_table(&self) -> sqlx::Result<<DB as Database>::QueryResult> {
         self.drop_table().await?;
         self.create_table().await
     }
 
     /// Creates the table associated with the entity's [`Schema`]
-    pub async fn create_table(&self) -> sqlx::Result<PgQueryResult> {
+    pub async fn create_table(&self) -> sqlx::Result<<DB as Database>::QueryResult> {
         let table = E::TABLE_NAME;
+
+        // TODO: this migh be postgres specific
         let id = "id BIGSERIAL PRIMARY KEY";
         let cols = E::COLUMNS
             .iter()
@@ -54,7 +58,7 @@ where
     }
 
     /// Drops the table associated with the entity's [`Schema`]
-    pub async fn drop_table(&self) -> sqlx::Result<PgQueryResult> {
+    pub async fn drop_table(&self) -> sqlx::Result<<DB as Database>::QueryResult> {
         let table = E::TABLE_NAME;
         let sql = format!("DROP TABLE IF EXISTS {table}");
         sqlx::query(&sql).execute(&self.db).await
@@ -64,9 +68,14 @@ where
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Create
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-impl<E> Store<E>
+impl<DB, E> Store<DB, E>
 where
-    E: for<'r> FromRow<'r, PgRow> + Schema,
+    E: for<'r> FromRow<'r, <DB as Database>::Row> + Schema<DB>,
+    DB: Database,
+    for<'c> &'c mut <DB as sqlx::Database>::Connection: Executor<'c, Database = DB>,
+    for<'c> <DB as HasArguments<'c>>::Arguments: IntoArguments<'c, DB>,
+    for<'c> i64: Type<DB> + Decode<'c, DB>,
+    usize: ColumnIndex<<DB as sqlx::Database>::Row>,
 {
     /// Create an object in the database and returns its `id`.
     pub async fn create(&self, entity: &E) -> sqlx::Result<i64> {
@@ -88,9 +97,14 @@ where
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // Read
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-impl<E> Store<E>
+impl<DB, E> Store<DB, E>
 where
-    E: for<'r> FromRow<'r, PgRow> + Schema + Unpin + Send,
+    DB: Database,
+    E: Unpin + Send,
+    E: for<'r> FromRow<'r, <DB as Database>::Row> + Schema<DB>,
+    for<'c> &'c mut <DB as sqlx::Database>::Connection: Executor<'c, Database = DB>,
+    for<'c> <DB as HasArguments<'c>>::Arguments: IntoArguments<'c, DB>,
+    for<'c> i64: Type<DB> + Encode<'c, DB>,
 {
     fn select_stmt(suffix: &str) -> String {
         let table = E::TABLE_NAME;
@@ -114,9 +128,14 @@ where
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Update
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-impl<E> Store<E>
+impl<DB, E> Store<DB, E>
 where
-    E: for<'r> FromRow<'r, PgRow> + Schema,
+    DB: Database,
+    for<'c> &'c mut <DB as sqlx::Database>::Connection: Executor<'c, Database = DB>,
+    for<'c> <DB as HasArguments<'c>>::Arguments: IntoArguments<'c, DB>,
+    E: for<'r> FromRow<'r, <DB as Database>::Row> + Schema<DB>,
+    for<'c> i64: Type<DB> + Decode<'c, DB> + Encode<'c, DB>,
+    usize: ColumnIndex<<DB as sqlx::Database>::Row>,
 {
     /// Update an object in the database and returns its `id`.
     pub async fn update(&self, id: i64, entity: &E) -> sqlx::Result<i64> {
@@ -143,9 +162,13 @@ where
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Delete
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-impl<E> Store<E>
+impl<DB, E> Store<DB, E>
 where
-    E: Schema,
+    DB: Database,
+    for<'c> &'c mut <DB as sqlx::Database>::Connection: Executor<'c, Database = DB>,
+    for<'c> <DB as HasArguments<'c>>::Arguments: IntoArguments<'c, DB>,
+    for<'c> i64: Type<DB> + Encode<'c, DB>,
+    E: Schema<DB>,
 {
     fn delete_stmt(suffix: &str) -> String {
         let table = E::TABLE_NAME;
@@ -153,14 +176,14 @@ where
     }
 
     /// Delete the object of type `E` corresponding to the provided `id`
-    pub async fn delete(&self, id: i64) -> sqlx::Result<PgQueryResult> {
+    pub async fn delete(&self, id: i64) -> sqlx::Result<<DB as Database>::QueryResult> {
         let sql = Self::delete_stmt("WHERE id=$1");
         sqlx::query(&sql).bind(id).execute(&self.db).await
     }
 
     /// Delete all objects of type E
-    pub async fn delete_all(&self) -> sqlx::Result<u64> {
+    pub async fn delete_all(&self) -> sqlx::Result<<DB as Database>::QueryResult> {
         let sql = Self::delete_stmt("");
-        Ok(sqlx::query(&sql).execute(&self.db).await?.rows_affected())
+        sqlx::query(&sql).execute(&self.db).await
     }
 }
