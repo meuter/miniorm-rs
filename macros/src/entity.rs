@@ -21,93 +21,6 @@ impl SchemaArgs {
             .unwrap_or(self.ident.to_string().to_lowercase())
     }
 
-    fn create_table(&self, db: Database) -> String {
-        let table = self.table_name();
-        let id = db.id_declaration();
-        let cols = self
-            .columns()
-            .map(|col| format!("{} {}", col.name(), col.sql_type(db)))
-            .join(", ");
-        format!("CREATE TABLE IF NOT EXISTS {table} ({id}, {cols})")
-    }
-
-    fn drop_table(&self) -> String {
-        let table = self.table_name();
-        format!("DROP TABLE IF EXISTS {table}")
-    }
-
-    fn create(&self, db: Database) -> String {
-        let table = self.table_name();
-        let cols = self.columns().map(|col| col.name()).join(", ");
-        match db {
-            Database::Postgres | Database::Sqlite => {
-                let placeholders = self
-                    .columns()
-                    .enumerate()
-                    .map(|(i, _)| format!("${}", i + 1))
-                    .join(", ");
-                format!("INSERT INTO {table} ({cols}) VALUES ({placeholders}) RETURNING id")
-            }
-            Database::MySql => {
-                // MySql uses `?` as placeholders and does not support `RETURNING id`
-                let placeholders = self.columns().map(|_| "?").join(", ");
-                format!("INSERT INTO {table} ({cols}) VALUES ({placeholders})")
-            }
-        }
-    }
-
-    fn read(&self, db: Database) -> String {
-        let table = self.table_name();
-        let cols = self.columns().map(|col| col.name()).join(", ");
-        match db {
-            Database::Postgres | Database::Sqlite => {
-                format!("SELECT {cols} FROM {table} WHERE id=$1")
-            }
-            Database::MySql => format!("SELECT {cols} FROM {table} WHERE id=?"),
-        }
-    }
-
-    fn list(&self) -> String {
-        let table = self.table_name();
-        let cols = self.columns().map(|col| col.name()).join(", ");
-        format!("SELECT {cols} FROM {table} ORDER BY id")
-    }
-
-    fn update(&self, db: Database) -> String {
-        let table = self.table_name();
-        let id = self.columns().count() + 1;
-        match db {
-            Database::Postgres | Database::Sqlite => {
-                let values = self
-                    .columns()
-                    .enumerate()
-                    .map(|(i, col)| format!("{}=${}", col.name(), i + 1))
-                    .join(", ");
-                format!("UPDATE {table} SET {values} WHERE id=${id}")
-            }
-            Database::MySql => {
-                let values = self
-                    .columns()
-                    .map(|col| format!("{}=?", col.name()))
-                    .join(", ");
-                format!("UPDATE {table} SET {values} WHERE id=?")
-            }
-        }
-    }
-
-    fn delete(&self, db: Database) -> String {
-        let table = self.table_name();
-        match db {
-            Database::Postgres | Database::Sqlite => format!("DELETE FROM {table} WHERE id=$1"),
-            Database::MySql => format!("DELETE FROM {table} WHERE id=?"),
-        }
-    }
-
-    fn delete_all(&self) -> String {
-        let table = self.table_name();
-        format!("DELETE FROM {table}")
-    }
-
     pub fn columns(&self) -> impl Iterator<Item = &Column> {
         match &self.data {
             Data::Enum(_) => unreachable!(),
@@ -115,18 +28,55 @@ impl SchemaArgs {
         }
     }
 
-    pub fn generate_schema_impl(&self, db: Database) -> proc_macro2::TokenStream {
+    pub fn generate_schema_impl(&self, db: &Database) -> proc_macro2::TokenStream {
         let ident = &self.ident;
-        let table_name = self.table_name();
+        let table = self.table_name();
+        let cols = self.columns().map(|col| col.name()).join(",");
         let col_name = self.columns().map(|col| col.name());
-        let drop_table = self.drop_table();
-        let create_table = self.create_table(db);
-        let create = self.create(db);
-        let read = self.read(db);
-        let list = self.list();
-        let update = self.update(db);
-        let delete = self.delete(db);
-        let delete_all = self.delete_all();
+
+        // Table
+        let create_table = {
+            let id_declaration = db.id_declaration();
+            let col_declarations = self
+                .columns()
+                .map(|col| format!("{} {}", col.name(), col.sql_type(db)))
+                .join(", ");
+            format!("CREATE TABLE IF NOT EXISTS {table} ({id_declaration}, {col_declarations})")
+        };
+        let drop_table = format!("DROP TABLE IF EXISTS {table}");
+
+        // Create
+        let create = {
+            let placeholders = self
+                .columns()
+                .enumerate()
+                .map(|(i, _)| format!("{}", db.placeholder(i + 1)))
+                .join(", ");
+            let suffix = match db {
+                Database::Postgres | Database::Sqlite => "RETURNING id",
+                Database::MySql => "",
+            };
+            format!("INSERT INTO {table} ({cols}) VALUES ({placeholders}) {suffix}")
+        };
+
+        // Read
+        let read = format!("SELECT {cols} FROM {table} WHERE id={}", db.placeholder(1));
+        let list = format!("SELECT {cols} FROM {table} ORDER BY id");
+
+        // Update
+        let update = {
+            let id = db.placeholder(self.columns().count() + 1);
+            let values = self
+                .columns()
+                .enumerate()
+                .map(|(i, col)| format!("{}={}", col.name(), db.placeholder(i + 1)))
+                .join(", ");
+            format!("UPDATE {table} SET {values} WHERE id={id}")
+        };
+
+        // Datate
+        let delete = format!("DELETE FROM {table} WHERE id={}", db.placeholder(1));
+        let delete_all = format!("DELETE FROM {table}");
 
         let db = db.to_token_stream();
         quote! {
@@ -139,7 +89,7 @@ impl SchemaArgs {
                 const MINIORM_UPDATE: &'static str = #update;
                 const MINIORM_DELETE: &'static str = #delete;
                 const MINIORM_DELETE_ALL: &'static str = #delete_all;
-                const MINIORM_TABLE_NAME: &'static str = #table_name;
+                const MINIORM_TABLE_NAME: &'static str = #table;
                 const MINIORM_COLUMNS: &'static [&'static str] = &[
                     #(#col_name,)*
                 ];
@@ -147,7 +97,7 @@ impl SchemaArgs {
         }
     }
 
-    pub fn generate_bind_impl(&self, db: Database) -> proc_macro2::TokenStream {
+    pub fn generate_bind_impl(&self, db: &Database) -> proc_macro2::TokenStream {
         let ident = &self.ident;
         let col_name = self.columns().map(|col| col.name());
         let col_value = self.columns().map(|col| col.value());

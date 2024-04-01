@@ -62,13 +62,13 @@ impl Column {
             .unwrap_or(self.ident().to_string())
     }
 
-    pub fn sql_type(&self, db: Database) -> String {
-        let col_type = match db {
-            Database::Postgres => self.postgres(),
-            Database::Sqlite => self.sqlite(),
-            Database::MySql => self.mysql(),
-        };
-        col_type.to_string()
+    pub fn sql_type(&self, db: &Database) -> &String {
+        use Database::*;
+        match db {
+            Postgres => self.postgres(),
+            Sqlite => self.sqlite(),
+            MySql => self.mysql(),
+        }
     }
 
     pub fn value(&self) -> proc_macro2::TokenStream {

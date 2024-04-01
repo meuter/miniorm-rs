@@ -12,14 +12,16 @@ use syn::DeriveInput;
 /// Derive macro to automatically derive the `Schema` and `Bind` traits.
 #[proc_macro_derive(Entity, attributes(sqlx, column, postgres, sqlite, mysql))]
 pub fn derive_entity(input: TokenStream) -> TokenStream {
+    use Database::*;
+
     let input: DeriveInput = syn::parse(input).unwrap();
     let args = SchemaArgs::from_derive_input(&input).expect("could not parse args");
 
     let mut result = quote!();
 
     if args.columns().any(|col| col.has_postgres()) {
-        let schema_impl = args.generate_schema_impl(Database::Postgres);
-        let bind_impl = args.generate_bind_impl(Database::Postgres);
+        let schema_impl = args.generate_schema_impl(&Postgres);
+        let bind_impl = args.generate_bind_impl(&Postgres);
         result = quote! {
             #result
             #schema_impl
@@ -28,8 +30,8 @@ pub fn derive_entity(input: TokenStream) -> TokenStream {
     }
 
     if args.columns().any(|col| col.has_sqlite()) {
-        let schema_impl = args.generate_schema_impl(Database::Sqlite);
-        let bind_impl = args.generate_bind_impl(Database::Sqlite);
+        let schema_impl = args.generate_schema_impl(&Sqlite);
+        let bind_impl = args.generate_bind_impl(&Sqlite);
         result = quote! {
             #result
             #schema_impl
@@ -38,8 +40,8 @@ pub fn derive_entity(input: TokenStream) -> TokenStream {
     }
 
     if args.columns().any(|col| col.has_mysql()) {
-        let schema_impl = args.generate_schema_impl(Database::MySql);
-        let bind_impl = args.generate_bind_impl(Database::MySql);
+        let schema_impl = args.generate_schema_impl(&MySql);
+        let bind_impl = args.generate_bind_impl(&MySql);
         result = quote! {
             #result
             #schema_impl
