@@ -1,5 +1,5 @@
 use crate::{
-    prelude::{BindColumn, Create, Delete, Read, Schema, Update},
+    prelude::{BindColumn, Create, Delete, Read, Schema, Table, Update},
     traits::sqlx::{RowsAffected, SupportsReturning},
 };
 use async_trait::async_trait;
@@ -32,25 +32,20 @@ impl<DB: Database, E> Store<DB, E> {
     }
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Table
-impl<DB: Database, E: Schema<DB>> Store<DB, E>
+///////////////////////////////////////////////////////////////////////////////////////////////////
+#[async_trait]
+impl<DB: Database, E: Sync + Schema<DB>> Table<DB> for Store<DB, E>
 where
     for<'c> &'c mut <DB as sqlx::Database>::Connection: Executor<'c, Database = DB>,
     for<'c> <DB as HasArguments<'c>>::Arguments: IntoArguments<'c, DB>,
 {
-    /// Recreates the table associated with the entity's [`Schema`]
-    pub async fn recreate_table(&self) -> sqlx::Result<<DB as Database>::QueryResult> {
-        self.drop_table().await?;
-        self.create_table().await
-    }
-
-    /// Creates the table associated with the entity's [`Schema`]
-    pub async fn create_table(&self) -> sqlx::Result<<DB as Database>::QueryResult> {
+    async fn create_table(&self) -> sqlx::Result<<DB as Database>::QueryResult> {
         sqlx::query(E::MINIORM_CREATE_TABLE).execute(&self.db).await
     }
 
-    /// Drops the table associated with the entity's [`Schema`]
-    pub async fn drop_table(&self) -> sqlx::Result<<DB as Database>::QueryResult> {
+    async fn drop_table(&self) -> sqlx::Result<<DB as Database>::QueryResult> {
         sqlx::query(E::MINIORM_DROP_TABLE).execute(&self.db).await
     }
 }

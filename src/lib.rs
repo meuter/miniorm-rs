@@ -18,5 +18,6 @@ pub mod prelude {
     pub use super::traits::crud::{Create, Crud, Delete, Read, Update};
     pub use super::traits::schema::Schema;
     pub use super::traits::sqlx::Bind;
+    pub use super::traits::table::Table;
     pub use miniorm_macros::Entity;
 }
