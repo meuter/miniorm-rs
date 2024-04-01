@@ -1,5 +1,5 @@
 use iso_currency::Currency;
-use miniorm::{Create, Entity};
+use miniorm::prelude::*;
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
 use serde::{Deserialize, Serialize};
@@ -95,13 +95,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let id = store.create(&tx).await?;
 
     println!("Retrieveing by id...");
-    let fetched = store.read(id).await?;
+    let mut fetched = store.read(id).await?;
     assert_eq!(tx, fetched);
+
+    println!("Updating by id");
+    fetched.operation = Operation::Sell;
+    let id = store.update(id, &fetched).await?;
 
     println!("Listing all...");
     let all = store.list().await?;
     assert_eq!(all.len(), 1);
-    assert_eq!(&tx, &all[0]);
+    assert_eq!(&fetched, &all[0]);
 
     println!("Deleting by id...");
     store.delete(id).await?;

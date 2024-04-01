@@ -13,3 +13,17 @@ pub trait Update<E> {
     /// Update an object in the database and returns its `id`.
     async fn update(&self, id: i64, entity: &E) -> sqlx::Result<i64>;
 }
+
+/// [D]elete CRUD operation
+#[async_trait]
+pub trait Delete<E> {
+    /// Delete the object of type `E` corresponding to the provided `id`
+    async fn delete(&self, id: i64) -> sqlx::Result<()>;
+
+    /// Delete all objects of type E and return the number of deleted rows
+    async fn delete_all(&self) -> sqlx::Result<u64>;
+}
+
+/// CRUD operations
+#[async_trait]
+pub trait Crud<E>: Create<E> + Update<E> + Delete<E> {}

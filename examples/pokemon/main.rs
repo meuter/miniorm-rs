@@ -1,4 +1,4 @@
-use miniorm::{Create, Entity, Store};
+use miniorm::prelude::*;
 use serde::{Deserialize, Serialize};
 use sqlx::{prelude::Type, FromRow, MySql};
 use std::string::ToString;
