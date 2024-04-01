@@ -1,15 +1,16 @@
-use sqlx::database::{Database, HasArguments};
-
-/// Convenience type for simplify the definition of [`Bind`]
-pub type QueryAs<'q, DB, O> = sqlx::query::QueryAs<'q, DB, O, <DB as HasArguments<'q>>::Arguments>;
+use sqlx::{
+    database::{Database, HasArguments},
+    query::{Query, QueryAs},
+    Encode, Type,
+};
 
 /// Trait that can be implemented on a `struct` to bind the fields of
-/// of this struct with a [sqlx::query::QueryAs].
+/// of this struct with a [sqlx::query::QueryAs] or a [sqlx::query::Query].
 ///
 /// # Example
 ///
 /// ```
-/// use miniorm::{Bind, QueryAs};
+/// use miniorm::{Bind, BindableQuery};
 /// use sqlx::Postgres;
 ///
 /// struct Todo {
@@ -18,11 +19,9 @@ pub type QueryAs<'q, DB, O> = sqlx::query::QueryAs<'q, DB, O, <DB as HasArgument
 /// }
 ///
 /// impl Bind<Postgres> for Todo {
-///     fn bind<'q, O>(
-///         &self,
-///         query: QueryAs<'q, Postgres, O>,
-///         column_name: &'static str
-///     ) -> QueryAs<'q, Postgres, O>{
+///     fn bind<'q, Q>(&self, query: Q, column_name: &'static str) -> Q
+///     where
+///         Q: ::miniorm::BindableQuery<'q, Postgres> {
 ///         match column_name {
 ///             "description" => query.bind(self.description.clone()),
 ///             "done" => query.bind(self.done.clone()),
@@ -38,9 +37,43 @@ pub type QueryAs<'q, DB, O> = sqlx::query::QueryAs<'q, DB, O, <DB as HasArgument
 ///
 pub trait Bind<DB: Database> {
     /// binds a specific column using the provided query.
-    fn bind<'q, O>(
-        &self,
-        query: QueryAs<'q, DB, O>,
-        column_name: &'static str,
-    ) -> QueryAs<'q, DB, O>;
+    fn bind<'q, Q>(&self, query: Q, column_name: &'static str) -> Q
+    where
+        Q: BindableQuery<'q, DB>;
+}
+
+/// Trait to abstract calls to a `bind` method, to generalize
+/// [`Query`] and [`QueryAs`].
+pub trait BindableQuery<'q, DB>
+where
+    DB: Database,
+{
+    /// Bind a value for use with this SQL query.
+    fn bind<T>(self, value: T) -> Self
+    where
+        T: 'q + Send + Encode<'q, DB> + Type<DB>;
+}
+
+impl<'q, DB> BindableQuery<'q, DB> for Query<'q, DB, <DB as HasArguments<'q>>::Arguments>
+where
+    DB: Database,
+{
+    fn bind<T>(self, value: T) -> Self
+    where
+        T: 'q + Send + Encode<'q, DB> + Type<DB>,
+    {
+        Query::bind(self, value)
+    }
+}
+
+impl<'q, DB, O> BindableQuery<'q, DB> for QueryAs<'q, DB, O, <DB as HasArguments<'q>>::Arguments>
+where
+    DB: Database,
+{
+    fn bind<T>(self, value: T) -> Self
+    where
+        T: 'q + Send + Encode<'q, DB> + Type<DB>,
+    {
+        QueryAs::bind(self, value)
+    }
 }

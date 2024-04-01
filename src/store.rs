@@ -55,34 +55,68 @@ where
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Create
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-impl<DB, E> Store<DB, E>
-where
-    E: for<'r> FromRow<'r, <DB as Database>::Row> + Schema<DB> + Bind<DB>,
-    DB: Database,
-    for<'c> &'c mut <DB as sqlx::Database>::Connection: Executor<'c, Database = DB>,
-    for<'c> <DB as HasArguments<'c>>::Arguments: IntoArguments<'c, DB>,
-    for<'c> i64: Type<DB> + Decode<'c, DB>,
-    usize: ColumnIndex<<DB as sqlx::Database>::Row>,
-{
-    /// Create an object in the database and returns its `id`.
-    pub async fn create(&self, entity: &E) -> sqlx::Result<i64> {
-        let table = E::TABLE_NAME;
-        let cols = E::COLUMNS.iter().map(|col| col.0).join(", ");
-        let values = (1..=E::COLUMNS.len()).map(|i| format!("${i}")).join(", ");
-        if DB::NAME == "MySql" {
-            // TODO: RETURNING id does not work in MySql, need to use SELECT LAST_INSERT_ID();
-            // https://dev.mysql.com/doc/refman/8.0/en/information-functions.html#function_last-insert-id
-            todo!();
-        } else {
-            let sql = format!("INSERT INTO {table} ({cols}) VALUES ({values}) RETURNING id");
-            let mut query = sqlx::query_as(&sql);
+#[cfg(feature = "postgres")]
+mod postgres {
+    use crate::{Bind, Crud, Schema, Store};
+    use async_trait::async_trait;
+    use sqlx::{postgres::PgRow, FromRow, Postgres};
 
+    #[async_trait]
+    impl<E> Crud<E> for Store<Postgres, E>
+    where
+        E: for<'r> FromRow<'r, PgRow> + Schema<Postgres> + Bind<Postgres> + Sync,
+    {
+        async fn create(&self, entity: &E) -> sqlx::Result<i64> {
+            let mut query = sqlx::query_as(E::MINIORM_CREATE);
             for col in E::COLUMNS.iter().map(|col| col.0) {
                 query = entity.bind(query, col)
             }
-
             let (id,) = query.fetch_one(&self.db).await?;
             Ok(id)
+        }
+    }
+}
+
+#[cfg(feature = "sqlite")]
+mod sqlite {
+    use crate::{Bind, Crud, Schema, Store};
+    use async_trait::async_trait;
+    use sqlx::{sqlite::SqliteRow, FromRow, Sqlite};
+
+    #[async_trait]
+    impl<E> Crud<E> for Store<Sqlite, E>
+    where
+        E: for<'r> FromRow<'r, SqliteRow> + Schema<Sqlite> + Bind<Sqlite> + Sync,
+    {
+        async fn create(&self, entity: &E) -> sqlx::Result<i64> {
+            let mut query = sqlx::query_as(E::MINIORM_CREATE);
+            for col in E::COLUMNS.iter().map(|col| col.0) {
+                query = entity.bind(query, col)
+            }
+            let (id,) = query.fetch_one(&self.db).await?;
+            Ok(id)
+        }
+    }
+}
+
+#[cfg(feature = "mysql")]
+mod mysql {
+    use crate::{Bind, Crud, Schema, Store};
+    use async_trait::async_trait;
+    use sqlx::{mysql::MySqlRow, FromRow, MySql};
+
+    #[async_trait]
+    impl<E> Crud<E> for Store<MySql, E>
+    where
+        E: for<'r> FromRow<'r, MySqlRow> + Schema<MySql> + Bind<MySql> + Sync,
+    {
+        async fn create(&self, entity: &E) -> sqlx::Result<i64> {
+            let mut query = sqlx::query(E::MINIORM_CREATE);
+            for col in E::COLUMNS.iter().map(|col| col.0) {
+                query = entity.bind(query, col)
+            }
+            let res = query.execute(&self.db).await?;
+            Ok(res.last_insert_id() as i64)
         }
     }
 }

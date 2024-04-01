@@ -14,13 +14,14 @@ repository = "https://github.com/meuter/miniorm-rs"
 itertools = "0.12.1"
 sqlx = { version = "0.7.4" }
 miniorm-macros = { version = "0.4.0", path = "macros" }
+async-trait = "0.1.79"
 
 [workspace]
 members = ["macros"]
 
 [features]
 default = ["postgres"]
-full = ["postgres", "sqlite"]
+full = ["postgres", "sqlite", "mysql"]
 postgres = ["sqlx/postgres"]
 sqlite = ["sqlx/sqlite"]
 mysql = ["sqlx/mysql"]
