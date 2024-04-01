@@ -80,7 +80,7 @@ impl SchemaArgs {
 
         let db = db.to_token_stream();
         quote! {
-            impl ::miniorm::Schema<#db> for #ident {
+            impl ::miniorm::prelude::Schema<#db> for #ident {
                 const MINIORM_CREATE_TABLE: &'static str = #create_table;
                 const MINIORM_DROP_TABLE: &'static str = #drop_table;
                 const MINIORM_CREATE: &'static str = #create;
@@ -104,10 +104,10 @@ impl SchemaArgs {
         let db = db.to_token_stream();
 
         quote! {
-            impl ::miniorm::BindColumn<#db> for #ident {
+            impl ::miniorm::prelude::BindColumn<#db> for #ident {
                 fn bind_column<'q, Q>(&self, query: Q, column_name: &'static str) -> Q
                 where
-                    Q: ::miniorm::Bind<'q, #db> {
+                    Q: ::miniorm::prelude::Bind<'q, #db> {
                     match column_name {
                         #(#col_name => query.bind(#col_value),)*
                         _ => query,

@@ -42,7 +42,7 @@ where
 
 /// Trait that should arguably be in [`sqlx`] denoting all types of query results
 /// ([`PgRow`], [`SqliteRow`] and [`MySql`]) on which the `rows_affected` can be called.
-pub trait RowsAffected {
+pub(crate) trait RowsAffected {
     /// Returns the number of affected rows
     fn rows_affected(&self) -> u64;
 }
@@ -70,7 +70,7 @@ impl RowsAffected for sqlx::sqlite::SqliteQueryResult {
 
 /// Trait that allows to determine if a database supports
 /// the `RETURNING ...` syntax in SQL queries.
-pub trait SupportsReturning {}
+pub(crate) trait SupportsReturning {}
 
 #[cfg(feature = "postgres")]
 impl SupportsReturning for sqlx::Postgres {}

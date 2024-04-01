@@ -6,7 +6,7 @@ use sqlx::Database;
 /// # Example
 ///
 /// ```
-/// use miniorm::Schema;
+/// use miniorm::prelude::*;
 /// use sqlx::Postgres;
 ///
 /// struct Todo {
