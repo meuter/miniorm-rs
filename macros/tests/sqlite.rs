@@ -32,26 +32,6 @@ mod table_name {
     }
 }
 
-mod id_declaration {
-    use super::*;
-
-    #[test]
-    fn nominal() {
-        #[derive(Entity)]
-        struct Point {
-            #[sqlite(INTEGER NOT NULL)]
-            x: i64,
-            #[sqlite(INTEGER NOT NULL)]
-            y: i64,
-        }
-
-        assert_eq!(
-            <Point as Schema<Sqlite>>::ID_DECLARATION,
-            "id INTEGER PRIMARY KEY AUTOINCREMENT"
-        );
-    }
-}
-
 mod columns {
     use super::*;
 

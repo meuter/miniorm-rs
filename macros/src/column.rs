@@ -2,6 +2,8 @@ use darling::FromField;
 use quote::quote;
 use syn::{Field, Ident, Meta};
 
+use crate::database::Database;
+
 #[derive(Clone, Debug, FromField)]
 #[darling(attributes(miniorm, sqlx))]
 struct InnerColumn {
@@ -58,6 +60,15 @@ impl Column {
             .as_ref()
             .cloned()
             .unwrap_or(self.ident().to_string())
+    }
+
+    pub fn sql_type(&self, db: Database) -> String {
+        let col_type = match db {
+            Database::Postgres => self.postgres(),
+            Database::Sqlite => self.sqlite(),
+            Database::MySql => self.mysql(),
+        };
+        col_type.to_string()
     }
 
     pub fn value(&self) -> proc_macro2::TokenStream {

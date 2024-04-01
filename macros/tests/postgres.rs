@@ -32,26 +32,6 @@ mod table_name {
     }
 }
 
-mod id_declaration {
-    use super::*;
-
-    #[test]
-    fn nominal() {
-        #[derive(Entity)]
-        struct Point {
-            #[postgres(INTEGER NOT NULL)]
-            x: i64,
-            #[postgres(INTEGER NOT NULL)]
-            y: i64,
-        }
-
-        assert_eq!(
-            <Point as Schema<Postgres>>::ID_DECLARATION,
-            "id BIGSERIAL PRIMARY KEY"
-        );
-    }
-}
-
 mod columns {
     use super::*;
 

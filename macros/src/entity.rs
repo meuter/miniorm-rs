@@ -1,4 +1,5 @@
 use darling::{ast::Data, FromDeriveInput};
+use itertools::Itertools;
 use quote::quote;
 use syn::Ident;
 
@@ -20,6 +21,21 @@ impl SchemaArgs {
             .unwrap_or(self.ident.to_string().to_lowercase())
     }
 
+    fn create_table(&self, db: Database) -> String {
+        let table = self.table_name();
+        let id = db.id_declaration();
+        let cols = self
+            .columns()
+            .map(|col| format!("{} {}", col.name(), col.sql_type(db)))
+            .join(", ");
+        format!("CREATE TABLE IF NOT EXISTS {table} ({id}, {cols})")
+    }
+
+    fn drop_table(&self) -> String {
+        let table = self.table_name();
+        format!("DROP TABLE IF EXISTS {table}")
+    }
+
     pub fn columns(&self) -> impl Iterator<Item = &Column> {
         match &self.data {
             Data::Enum(_) => unreachable!(),
@@ -30,18 +46,21 @@ impl SchemaArgs {
     pub fn generate_schema_impl(&self, db: Database) -> proc_macro2::TokenStream {
         let ident = &self.ident;
         let table_name = self.table_name();
-        let id_declaration = db.id_declaration();
         let col_name = self.columns().map(|col| col.name());
         let col_type = self.columns().map(|col| match db {
             Database::Postgres => col.postgres(),
             Database::Sqlite => col.sqlite(),
             Database::MySql => col.mysql(),
         });
-        let db = db.to_token_stream();
 
+        let drop_table = self.drop_table();
+        let create_table = self.create_table(db);
+
+        let db = db.to_token_stream();
         quote! {
             impl ::miniorm::Schema<#db> for #ident {
-                const ID_DECLARATION: &'static str = #id_declaration;
+                const MINIORM_CREATE_TABLE: &'static str = #create_table;
+                const MINIORM_DROP_TABLE: &'static str = #drop_table;
                 const TABLE_NAME: &'static str = #table_name;
                 const COLUMNS: &'static [(&'static str, &'static str)] = &[
                     #((#col_name, #col_type),)*

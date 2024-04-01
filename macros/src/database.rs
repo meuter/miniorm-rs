@@ -1,6 +1,6 @@
 use quote::{format_ident, quote};
 
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum Database {
     Postgres,
     Sqlite,

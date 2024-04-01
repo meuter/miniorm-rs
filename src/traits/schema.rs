@@ -15,7 +15,13 @@ use sqlx::Database;
 /// }
 ///
 /// impl Schema<Postgres> for Todo {
-///     const ID_DECLARATION: &'static str = "id BIGSERIAL PRIMARY KEY";
+///     const MINIORM_CREATE_TABLE: &'static str = r#"
+///         CREATE TABLE IF NOT EXISTS todo (
+///             description TEXT NOT NULL,
+///             done BOOLEAN NOT NULL
+///         )"#;
+///     const MINIORM_DROP_TABLE: &'static str = r#"
+///         DROP TABLE IF EXISTS todo"#;
 ///     const TABLE_NAME: &'static str = "todo";
 ///     const COLUMNS: &'static [(&'static str, &'static str)] = &[
 ///         ("description", "TEXT NOT NULL"),
@@ -30,8 +36,11 @@ use sqlx::Database;
 /// derive macro.
 ///
 pub trait Schema<DB: Database> {
-    /// SQL declatation of the primary key
-    const ID_DECLARATION: &'static str;
+    /// SQL query to create the table
+    const MINIORM_CREATE_TABLE: &'static str;
+
+    /// SQL query to drop the table
+    const MINIORM_DROP_TABLE: &'static str;
 
     /// name of the table in the database
     const TABLE_NAME: &'static str;

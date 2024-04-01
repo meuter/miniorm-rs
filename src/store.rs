@@ -30,10 +30,8 @@ impl<DB: Database, E> Store<DB, E> {
 }
 
 /// Table
-impl<DB, E> Store<DB, E>
+impl<DB: Database, E: Schema<DB>> Store<DB, E>
 where
-    E: Schema<DB>,
-    DB: Database,
     for<'c> &'c mut <DB as sqlx::Database>::Connection: Executor<'c, Database = DB>,
     for<'c> <DB as HasArguments<'c>>::Arguments: IntoArguments<'c, DB>,
 {
@@ -45,21 +43,12 @@ where
 
     /// Creates the table associated with the entity's [`Schema`]
     pub async fn create_table(&self) -> sqlx::Result<<DB as Database>::QueryResult> {
-        let table = E::TABLE_NAME;
-        let id = E::ID_DECLARATION;
-        let cols = E::COLUMNS
-            .iter()
-            .map(|col| format!("{} {}", col.0, col.1))
-            .join(", ");
-        let sql = format!("CREATE TABLE IF NOT EXISTS {table} ({id}, {cols})");
-        sqlx::query(&sql).execute(&self.db).await
+        sqlx::query(E::MINIORM_CREATE_TABLE).execute(&self.db).await
     }
 
     /// Drops the table associated with the entity's [`Schema`]
     pub async fn drop_table(&self) -> sqlx::Result<<DB as Database>::QueryResult> {
-        let table = E::TABLE_NAME;
-        let sql = format!("DROP TABLE IF EXISTS {table}");
-        sqlx::query(&sql).execute(&self.db).await
+        sqlx::query(E::MINIORM_DROP_TABLE).execute(&self.db).await
     }
 }
 
