@@ -1,7 +1,6 @@
 use crate::{
-    prelude::RowsAffected,
-    traits::{BindColumn, Schema, SupportsReturning},
-    Create, Delete, Update,
+    prelude::{BindColumn, Create, Delete, Schema, Update},
+    traits::sqlx::{RowsAffected, SupportsReturning},
 };
 use async_trait::async_trait;
 use sqlx::{
@@ -81,9 +80,13 @@ where
 
 #[cfg(feature = "mysql")]
 mod mysql {
-    use crate::{BindColumn, Create, Schema, Store};
     use async_trait::async_trait;
     use sqlx::{mysql::MySqlRow, FromRow, MySql};
+
+    use crate::{
+        prelude::{BindColumn, Create, Schema},
+        Store,
+    };
 
     #[async_trait]
     impl<E> Create<E> for Store<MySql, E>

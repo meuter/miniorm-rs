@@ -1,4 +1,4 @@
-use miniorm::{Entity, Schema};
+use miniorm::prelude::*;
 use sqlx::Postgres;
 
 mod table_name {

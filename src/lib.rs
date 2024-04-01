@@ -10,12 +10,13 @@ mod traits;
 
 pub use miniorm_macros::Entity;
 pub use store::Store;
-pub use traits::{Bind, BindColumn, Create, Crud, Delete, Schema, Update};
 
 /// Prelude including all the necessary traits for convenience
 pub mod prelude {
     pub use super::store::Store;
-    pub use super::traits::{Bind, BindColumn, RowsAffected, Schema};
-    pub use super::traits::{Create, Crud, Delete, Update};
+    pub use super::traits::bind_col::BindColumn;
+    pub use super::traits::crud::{Create, Crud, Delete, Update};
+    pub use super::traits::schema::Schema;
+    pub use super::traits::sqlx::Bind;
     pub use miniorm_macros::Entity;
 }
