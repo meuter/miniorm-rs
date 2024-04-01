@@ -5,7 +5,7 @@ use syn::{Field, Ident, Meta};
 use crate::database::Database;
 
 #[derive(Clone, Debug, FromField)]
-#[darling(attributes(miniorm, sqlx))]
+#[darling(attributes(sqlx))]
 struct InnerColumn {
     ident: Option<Ident>,
     postgres: Option<String>,

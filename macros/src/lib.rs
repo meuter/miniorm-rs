@@ -10,7 +10,7 @@ use quote::quote;
 use syn::DeriveInput;
 
 /// Derive macro to automatically derive the `Schema` and `Bind` traits.
-#[proc_macro_derive(Entity, attributes(miniorm, sqlx, column, postgres, sqlite, mysql))]
+#[proc_macro_derive(Entity, attributes(sqlx, column, postgres, sqlite, mysql))]
 pub fn derive_entity(input: TokenStream) -> TokenStream {
     let input: DeriveInput = syn::parse(input).unwrap();
     let args = SchemaArgs::from_derive_input(&input).expect("could not parse args");
