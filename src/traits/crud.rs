@@ -7,6 +7,16 @@ pub trait Create<E> {
     async fn create(&self, entity: &E) -> sqlx::Result<i64>;
 }
 
+/// [R]ead CRUD operation
+#[async_trait]
+pub trait Read<E> {
+    /// Reads and returns an object from the database
+    async fn read(&self, id: i64) -> sqlx::Result<E>;
+
+    /// Lists and return all object from the database
+    async fn list(&self) -> sqlx::Result<Vec<E>>;
+}
+
 /// [C]reate CRUD operation
 #[async_trait]
 pub trait Update<E> {
@@ -26,4 +36,4 @@ pub trait Delete<E> {
 
 /// CRUD operations
 #[async_trait]
-pub trait Crud<E>: Create<E> + Update<E> + Delete<E> {}
+pub trait Crud<E>: Create<E> + Read<E> + Update<E> + Delete<E> {}

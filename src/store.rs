@@ -1,5 +1,5 @@
 use crate::{
-    prelude::{BindColumn, Create, Delete, Schema, Update},
+    prelude::{BindColumn, Create, Delete, Read, Schema, Update},
     traits::sqlx::{RowsAffected, SupportsReturning},
 };
 use async_trait::async_trait;
@@ -107,25 +107,24 @@ mod mysql {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // Read
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-impl<DB, E> Store<DB, E>
+#[async_trait]
+impl<DB, E> Read<E> for Store<DB, E>
 where
     DB: Database,
-    E: Unpin + Send,
+    E: Unpin + Send + Sync,
     E: for<'r> FromRow<'r, <DB as Database>::Row> + Schema<DB>,
     for<'c> &'c mut <DB as sqlx::Database>::Connection: Executor<'c, Database = DB>,
     for<'c> <DB as HasArguments<'c>>::Arguments: IntoArguments<'c, DB>,
     for<'c> i64: Type<DB> + Encode<'c, DB>,
 {
-    /// Reads and returns an object from the database
-    pub async fn read(&self, id: i64) -> sqlx::Result<E> {
+    async fn read(&self, id: i64) -> sqlx::Result<E> {
         sqlx::query_as(E::MINIORM_READ)
             .bind(id)
             .fetch_one(&self.db)
             .await
     }
 
-    /// Lists and return all object from the database
-    pub async fn list(&self) -> sqlx::Result<Vec<E>> {
+    async fn list(&self) -> sqlx::Result<Vec<E>> {
         sqlx::query_as(E::MINIORM_LIST).fetch_all(&self.db).await
     }
 }
@@ -143,7 +142,6 @@ where
     for<'c> i64: Type<DB> + Decode<'c, DB> + Encode<'c, DB>,
     usize: ColumnIndex<<DB as sqlx::Database>::Row>,
 {
-    /// Update an object in the database and returns its `id`.
     async fn update(&self, id: i64, entity: &E) -> sqlx::Result<i64> {
         let mut query = sqlx::query(E::MINIORM_UPDATE);
         for col in E::MINIORM_COLUMNS.iter() {
