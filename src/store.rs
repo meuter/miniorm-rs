@@ -133,22 +133,17 @@ where
     for<'c> <DB as HasArguments<'c>>::Arguments: IntoArguments<'c, DB>,
     for<'c> i64: Type<DB> + Encode<'c, DB>,
 {
-    fn select_stmt(suffix: &str) -> String {
-        let table = E::TABLE_NAME;
-        let cols = E::COLUMNS.iter().map(|col| col.0).join(", ");
-        format!("SELECT {cols} FROM {table} {suffix}")
-    }
-
     /// Reads and returns an object from the database
     pub async fn read(&self, id: i64) -> sqlx::Result<E> {
-        let sql = Self::select_stmt("WHERE id=$1");
-        sqlx::query_as(&sql).bind(id).fetch_one(&self.db).await
+        sqlx::query_as(E::MINIORM_READ)
+            .bind(id)
+            .fetch_one(&self.db)
+            .await
     }
 
     /// Lists and return all object from the database
     pub async fn list(&self) -> sqlx::Result<Vec<E>> {
-        let sql = Self::select_stmt("ORDER BY id");
-        sqlx::query_as(&sql).fetch_all(&self.db).await
+        sqlx::query_as(E::MINIORM_LIST).fetch_all(&self.db).await
     }
 }
 

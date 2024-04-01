@@ -3,12 +3,19 @@ use sqlx::{prelude::Type, FromRow, MySql};
 
 #[derive(Debug, Clone, Eq, PartialEq, Type)]
 pub enum PokemonType {
+    Unknown,
     Fire,
     Water,
     Electric,
     Ice,
     Poison,
     Rock,
+}
+
+impl Default for PokemonType {
+    fn default() -> Self {
+        Self::Unknown
+    }
 }
 
 /// A todo including a `description` and a `done` flag
@@ -19,7 +26,7 @@ struct Pokemon {
 
     #[mysql(VARCHAR(40) NOT NULL)]
     // TODO: figure out the ENUM type in mysql
-    #[miniorm(skip)]
+    #[sqlx(skip)]
     ty: PokemonType,
 }
 
@@ -34,29 +41,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let pikatchu = Pokemon {
         name: "Pikatchu".to_string(),
-        ty: PokemonType::Electric,
+        ty: PokemonType::default(),
     };
 
     println!("Recreating table...");
     store.recreate_table().await?;
 
     println!("Inserting...");
-    let _id = store.create(&pikatchu).await?;
+    let id = store.create(&pikatchu).await?;
 
-    // println!("Retrieveing by id...");
-    // let mut fetched = store.read(id).await?;
-    // assert_eq!(pikatchu, fetched);
-    //
+    println!("Retrieveing by id...");
+    let mut fetched = store.read(id).await?;
+    assert_eq!(pikatchu, fetched);
+
     // println!("Updating by id...");
     // fetched.name = "Pikaaaaaatchuuuuuuu!".to_string();
     // let id_after_update = store.update(id, &fetched).await?;
     // assert_eq!(id_after_update, id);
     //
-    // println!("Listing all...");
-    // let all = store.list().await?;
-    // assert_eq!(all.len(), 1);
-    // assert_eq!(&fetched, &all[0]);
-    //
+    println!("Listing all...");
+    let all = store.list().await?;
+    assert_eq!(all.len(), 1);
+    assert_eq!(&fetched, &all[0]);
+
     // println!("Deleting by id...");
     // store.delete(id).await?;
     //

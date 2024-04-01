@@ -17,6 +17,7 @@ use sqlx::Database;
 /// impl Schema<Postgres> for Todo {
 ///     const MINIORM_CREATE_TABLE: &'static str = r#"
 ///         CREATE TABLE IF NOT EXISTS todo (
+///             id BIGSERIAL PRIMARY KEY,
 ///             description TEXT NOT NULL,
 ///             done BOOLEAN NOT NULL
 ///         )"#;
@@ -24,6 +25,10 @@ use sqlx::Database;
 ///         DROP TABLE IF EXISTS todo"#;
 ///     const MINIORM_CREATE: &'static str = r#"
 ///         INSERT INTO todo (description, done) VALUES ($1,$2)"#;
+///     const MINIORM_READ: &'static str = r#"
+///         SELECT selection, done FROM todo WHERE id=$1"#;
+///     const MINIORM_LIST: &'static str = r#"
+///         SELECT selection, done FROM todo ORDER BY id"#;
 ///     const TABLE_NAME: &'static str = "todo";
 ///     const COLUMNS: &'static [(&'static str, &'static str)] = &[
 ///         ("description", "TEXT NOT NULL"),
@@ -46,6 +51,12 @@ pub trait Schema<DB: Database> {
 
     /// SQL query to create a row
     const MINIORM_CREATE: &'static str;
+
+    /// SQL query to read a row by id
+    const MINIORM_READ: &'static str;
+
+    /// SQL query to list all rows ordered by id
+    const MINIORM_LIST: &'static str;
 
     /// name of the table in the database
     const TABLE_NAME: &'static str;

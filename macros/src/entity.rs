@@ -6,7 +6,7 @@ use syn::Ident;
 use crate::{column::Column, database::Database};
 
 #[derive(FromDeriveInput)]
-#[darling(attributes(miniorm, sqlx), supports(struct_named))]
+#[darling(attributes(sqlx), supports(struct_named))]
 pub struct SchemaArgs {
     ident: Ident,
     rename: Option<String>,
@@ -54,6 +54,23 @@ impl SchemaArgs {
         }
     }
 
+    fn read(&self, db: Database) -> String {
+        let table = self.table_name();
+        let cols = self.columns().map(|col| col.name()).join(", ");
+        match db {
+            Database::Postgres | Database::Sqlite => {
+                format!("SELECT {cols} FROM {table} WHERE id=$1")
+            }
+            Database::MySql => format!("SELECT {cols} FROM {table} WHERE id=?"),
+        }
+    }
+
+    fn list(&self) -> String {
+        let table = self.table_name();
+        let cols = self.columns().map(|col| col.name()).join(", ");
+        format!("SELECT {cols} FROM {table} ORDER BY id")
+    }
+
     pub fn columns(&self) -> impl Iterator<Item = &Column> {
         match &self.data {
             Data::Enum(_) => unreachable!(),
@@ -74,6 +91,8 @@ impl SchemaArgs {
         let drop_table = self.drop_table();
         let create_table = self.create_table(db);
         let create = self.create(db);
+        let read = self.read(db);
+        let list = self.list();
 
         let db = db.to_token_stream();
         quote! {
@@ -81,6 +100,8 @@ impl SchemaArgs {
                 const MINIORM_CREATE_TABLE: &'static str = #create_table;
                 const MINIORM_DROP_TABLE: &'static str = #drop_table;
                 const MINIORM_CREATE: &'static str = #create;
+                const MINIORM_READ: &'static str = #read;
+                const MINIORM_LIST: &'static str = #list;
                 const TABLE_NAME: &'static str = #table_name;
                 const COLUMNS: &'static [(&'static str, &'static str)] = &[
                     #((#col_name, #col_type),)*
