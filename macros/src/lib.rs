@@ -19,7 +19,7 @@ pub fn derive_entity(input: TokenStream) -> TokenStream {
 
     let mut result = quote!();
 
-    if args.columns().any(|col| col.has_postgres()) {
+    if args.columns().any(|col| col.supports_db(&Postgres)) {
         let schema_impl = args.generate_schema_impl(&Postgres);
         let bind_impl = args.generate_bind_impl(&Postgres);
         result = quote! {
@@ -29,7 +29,7 @@ pub fn derive_entity(input: TokenStream) -> TokenStream {
         }
     }
 
-    if args.columns().any(|col| col.has_sqlite()) {
+    if args.columns().any(|col| col.supports_db(&Sqlite)) {
         let schema_impl = args.generate_schema_impl(&Sqlite);
         let bind_impl = args.generate_bind_impl(&Sqlite);
         result = quote! {
@@ -39,7 +39,7 @@ pub fn derive_entity(input: TokenStream) -> TokenStream {
         }
     }
 
-    if args.columns().any(|col| col.has_mysql()) {
+    if args.columns().any(|col| col.supports_db(&MySql)) {
         let schema_impl = args.generate_schema_impl(&MySql);
         let bind_impl = args.generate_bind_impl(&MySql);
         result = quote! {

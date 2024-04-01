@@ -1,12 +1,27 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, fmt::Display};
 
 use quote::{format_ident, quote};
 
-#[derive(Debug)]
+#[derive(Debug, Hash, Clone, Eq, PartialEq)]
 pub enum Database {
     Postgres,
     Sqlite,
     MySql,
+}
+
+impl Display for Database {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use Database::*;
+        write!(
+            f,
+            "{}",
+            match self {
+                Postgres => "postgres",
+                Sqlite => "sqlite",
+                MySql => "mysql",
+            }
+        )
+    }
 }
 
 impl Database {
