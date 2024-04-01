@@ -22,6 +22,8 @@ use sqlx::Database;
 ///         )"#;
 ///     const MINIORM_DROP_TABLE: &'static str = r#"
 ///         DROP TABLE IF EXISTS todo"#;
+///     const MINIORM_CREATE: &'static str = r#"
+///         INSERT INTO todo (description, done) VALUES ($1,$2)"#;
 ///     const TABLE_NAME: &'static str = "todo";
 ///     const COLUMNS: &'static [(&'static str, &'static str)] = &[
 ///         ("description", "TEXT NOT NULL"),
@@ -41,6 +43,9 @@ pub trait Schema<DB: Database> {
 
     /// SQL query to drop the table
     const MINIORM_DROP_TABLE: &'static str;
+
+    /// SQL query to create a row
+    const MINIORM_CREATE: &'static str;
 
     /// name of the table in the database
     const TABLE_NAME: &'static str;

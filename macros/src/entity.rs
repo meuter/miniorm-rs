@@ -36,6 +36,24 @@ impl SchemaArgs {
         format!("DROP TABLE IF EXISTS {table}")
     }
 
+    fn create(&self, db: Database) -> String {
+        let table = self.table_name();
+        let cols = self.columns().map(|col| col.name()).join(", ");
+        match db {
+            Database::Postgres | Database::Sqlite => {
+                let placeholders = (1..=self.columns().count())
+                    .map(|i| format!("${i}"))
+                    .join(", ");
+                format!("INSERT INTO {table} ({cols}) VALUES ({placeholders}) RETURNING id")
+            }
+            Database::MySql => {
+                // MySql uses `?` as placeholders and does not support `RETURNING id`
+                let placeholders = (1..=self.columns().count()).map(|_| "?").join(", ");
+                format!("INSERT INTO {table} ({cols}) VALUES ({placeholders})")
+            }
+        }
+    }
+
     pub fn columns(&self) -> impl Iterator<Item = &Column> {
         match &self.data {
             Data::Enum(_) => unreachable!(),
@@ -55,12 +73,14 @@ impl SchemaArgs {
 
         let drop_table = self.drop_table();
         let create_table = self.create_table(db);
+        let create = self.create(db);
 
         let db = db.to_token_stream();
         quote! {
             impl ::miniorm::Schema<#db> for #ident {
                 const MINIORM_CREATE_TABLE: &'static str = #create_table;
                 const MINIORM_DROP_TABLE: &'static str = #drop_table;
+                const MINIORM_CREATE: &'static str = #create;
                 const TABLE_NAME: &'static str = #table_name;
                 const COLUMNS: &'static [(&'static str, &'static str)] = &[
                     #((#col_name, #col_type),)*
@@ -77,11 +97,9 @@ impl SchemaArgs {
 
         quote! {
             impl ::miniorm::Bind<#db> for #ident {
-                fn bind<'q, O>(
-                    &self,
-                    query: ::miniorm::QueryAs<'q, #db, O>,
-                    column_name: &'static str
-                ) -> ::miniorm::QueryAs<'q, #db, O> {
+                fn bind<'q, Q>(&self, query: Q, column_name: &'static str) -> Q
+                where
+                    Q: ::miniorm::BindableQuery<'q, #db> {
                     match column_name {
                         #(#col_name => query.bind(#col_value),)*
                         _ => query,

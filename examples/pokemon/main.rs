@@ -1,4 +1,4 @@
-use miniorm::{Entity, Store};
+use miniorm::{Crud, Entity, Store};
 use sqlx::{prelude::Type, FromRow, MySql};
 
 #[derive(Debug, Clone, Eq, PartialEq, Type)]
@@ -18,6 +18,8 @@ struct Pokemon {
     name: String,
 
     #[mysql(VARCHAR(40) NOT NULL)]
+    // TODO: figure out the ENUM type in mysql
+    #[miniorm(skip)]
     ty: PokemonType,
 }
 
@@ -30,16 +32,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let db = sqlx::MySqlPool::connect(&url).await?;
     let store: Store<MySql, Pokemon> = miniorm::Store::new(db);
 
-    // let pikatchu = Pokemon {
-    // name: "Pikatchu".to_string(),
-    // ty: PokemonType::Electric,
-    // };
+    let pikatchu = Pokemon {
+        name: "Pikatchu".to_string(),
+        ty: PokemonType::Electric,
+    };
 
     println!("Recreating table...");
     store.recreate_table().await?;
 
-    // println!("Inserting...");
-    // let id = store.create(&pikatchu).await?;
+    println!("Inserting...");
+    let _id = store.create(&pikatchu).await?;
 
     // println!("Retrieveing by id...");
     // let mut fetched = store.read(id).await?;
