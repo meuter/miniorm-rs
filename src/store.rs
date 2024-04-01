@@ -192,20 +192,16 @@ where
     for<'c> i64: Type<DB> + Encode<'c, DB>,
     E: Schema<DB>,
 {
-    fn delete_stmt(suffix: &str) -> String {
-        let table = E::TABLE_NAME;
-        format!("DELETE FROM {table} {suffix}")
-    }
-
     /// Delete the object of type `E` corresponding to the provided `id`
     pub async fn delete(&self, id: i64) -> sqlx::Result<<DB as Database>::QueryResult> {
-        let sql = Self::delete_stmt("WHERE id=$1");
-        sqlx::query(&sql).bind(id).execute(&self.db).await
+        sqlx::query(E::MINIORM_DELETE)
+            .bind(id)
+            .execute(&self.db)
+            .await
     }
 
     /// Delete all objects of type E
     pub async fn delete_all(&self) -> sqlx::Result<<DB as Database>::QueryResult> {
-        let sql = Self::delete_stmt("");
-        sqlx::query(&sql).execute(&self.db).await
+        sqlx::query(E::MINIORM_DELETE_ALL).execute(&self.db).await
     }
 }

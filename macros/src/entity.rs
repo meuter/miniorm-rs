@@ -71,6 +71,19 @@ impl SchemaArgs {
         format!("SELECT {cols} FROM {table} ORDER BY id")
     }
 
+    fn delete(&self, db: Database) -> String {
+        let table = self.table_name();
+        match db {
+            Database::Postgres | Database::Sqlite => format!("DELETE FROM {table} WHERE id=$1"),
+            Database::MySql => format!("DELETE FROM {table} WHERE id=?"),
+        }
+    }
+
+    fn delete_all(&self) -> String {
+        let table = self.table_name();
+        format!("DELETE FROM {table}")
+    }
+
     pub fn columns(&self) -> impl Iterator<Item = &Column> {
         match &self.data {
             Data::Enum(_) => unreachable!(),
@@ -93,6 +106,8 @@ impl SchemaArgs {
         let create = self.create(db);
         let read = self.read(db);
         let list = self.list();
+        let delete = self.delete(db);
+        let delete_all = self.delete_all();
 
         let db = db.to_token_stream();
         quote! {
@@ -102,6 +117,8 @@ impl SchemaArgs {
                 const MINIORM_CREATE: &'static str = #create;
                 const MINIORM_READ: &'static str = #read;
                 const MINIORM_LIST: &'static str = #list;
+                const MINIORM_DELETE: &'static str = #delete;
+                const MINIORM_DELETE_ALL: &'static str = #delete_all;
                 const TABLE_NAME: &'static str = #table_name;
                 const COLUMNS: &'static [(&'static str, &'static str)] = &[
                     #((#col_name, #col_type),)*
