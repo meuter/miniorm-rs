@@ -1,5 +1,4 @@
 use crate::traits::{Bind, Schema};
-use itertools::Itertools;
 use sqlx::{
     database::HasArguments, ColumnIndex, Database, Decode, Encode, Executor, FromRow,
     IntoArguments, Pool, Type,
@@ -57,12 +56,12 @@ where
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 #[cfg(feature = "postgres")]
 mod postgres {
-    use crate::{Bind, Crud, Schema, Store};
+    use crate::{Bind, Create, Schema, Store};
     use async_trait::async_trait;
     use sqlx::{postgres::PgRow, FromRow, Postgres};
 
     #[async_trait]
-    impl<E> Crud<E> for Store<Postgres, E>
+    impl<E> Create<E> for Store<Postgres, E>
     where
         E: for<'r> FromRow<'r, PgRow> + Schema<Postgres> + Bind<Postgres> + Sync,
     {
@@ -79,12 +78,12 @@ mod postgres {
 
 #[cfg(feature = "sqlite")]
 mod sqlite {
-    use crate::{Bind, Crud, Schema, Store};
+    use crate::{Bind, Create, Schema, Store};
     use async_trait::async_trait;
     use sqlx::{sqlite::SqliteRow, FromRow, Sqlite};
 
     #[async_trait]
-    impl<E> Crud<E> for Store<Sqlite, E>
+    impl<E> Create<E> for Store<Sqlite, E>
     where
         E: for<'r> FromRow<'r, SqliteRow> + Schema<Sqlite> + Bind<Sqlite> + Sync,
     {
@@ -101,12 +100,12 @@ mod sqlite {
 
 #[cfg(feature = "mysql")]
 mod mysql {
-    use crate::{Bind, Crud, Schema, Store};
+    use crate::{Bind, Create, Schema, Store};
     use async_trait::async_trait;
     use sqlx::{mysql::MySqlRow, FromRow, MySql};
 
     #[async_trait]
-    impl<E> Crud<E> for Store<MySql, E>
+    impl<E> Create<E> for Store<MySql, E>
     where
         E: for<'r> FromRow<'r, MySqlRow> + Schema<MySql> + Bind<MySql> + Sync,
     {
@@ -161,22 +160,11 @@ where
 {
     /// Update an object in the database and returns its `id`.
     pub async fn update(&self, id: i64, entity: &E) -> sqlx::Result<i64> {
-        let table = E::TABLE_NAME;
-        let values = E::COLUMNS
-            .iter()
-            .map(|col| col.0)
-            .enumerate()
-            .map(|(i, col)| format!("{col}=${}", i + 1))
-            .join(", ");
-        let suffix = format!("WHERE id=${}", E::COLUMNS.len() + 1);
-        let sql = format!("UPDATE {table} SET {values} {suffix} RETURNING id");
-        let mut query = sqlx::query_as(&sql);
-
+        let mut query = sqlx::query(E::MINIORM_UPDATE);
         for col in E::COLUMNS.iter().map(|col| col.0) {
             query = entity.bind(query, col)
         }
-
-        let (id,) = query.bind(id).fetch_one(&self.db).await?;
+        query.bind(id).execute(&self.db).await?;
         Ok(id)
     }
 }

@@ -24,11 +24,13 @@ use sqlx::Database;
 ///     const MINIORM_DROP_TABLE: &'static str = r#"
 ///         DROP TABLE IF EXISTS todo"#;
 ///     const MINIORM_CREATE: &'static str = r#"
-///         INSERT INTO todo (description, done) VALUES ($1,$2)"#;
+///         INSERT INTO todo (description, done) VALUES ($1,$2) RETURNING id"#;
 ///     const MINIORM_READ: &'static str = r#"
 ///         SELECT selection, done FROM todo WHERE id=$1"#;
 ///     const MINIORM_LIST: &'static str = r#"
 ///         SELECT selection, done FROM todo ORDER BY id"#;
+///     const MINIORM_UPDATE: &'static str = r#"
+///         UPDATE todo SET selection=$1, done=$2 WHERE id=$2"#;
 ///     const MINIORM_DELETE: &'static str = r#"
 ///         DELETE FROM todo WHERE id=$1"#;
 ///     const MINIORM_DELETE_ALL: &'static str = r#"
@@ -61,6 +63,9 @@ pub trait Schema<DB: Database> {
 
     /// SQL query to list all rows ordered by id
     const MINIORM_LIST: &'static str;
+
+    /// SQL query to update a row by id
+    const MINIORM_UPDATE: &'static str;
 
     /// SQL query to delete a row by id
     const MINIORM_DELETE: &'static str;
