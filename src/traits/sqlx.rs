@@ -1,3 +1,6 @@
+/// Traits in this module are traits that should arguably be in [`sqlx`] iself.
+/// These traits allow to deal with the various kinds of database, queries, and
+/// query results in a more generic way.
 use sqlx::{
     database::HasArguments,
     query::{Query, QueryAs},
