@@ -822,6 +822,7 @@ name = "miniorm-macros"
 version = "0.4.0"
 dependencies = [
  "darling",
+ "itertools",
  "miniorm",
  "proc-macro2",
  "quote",

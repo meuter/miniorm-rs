@@ -32,26 +32,6 @@ mod table_name {
     }
 }
 
-mod id_declaration {
-    use super::*;
-
-    #[test]
-    fn nominal() {
-        #[derive(Entity)]
-        struct Point {
-            #[mysql(INTEGER NOT NULL)]
-            x: i64,
-            #[mysql(INTEGER NOT NULL)]
-            y: i64,
-        }
-
-        assert_eq!(
-            <Point as Schema<MySql>>::ID_DECLARATION,
-            "id INT AUTO_INCREMENT NOT NULL PRIMARY KEY"
-        );
-    }
-}
-
 mod columns {
     use super::*;
 
