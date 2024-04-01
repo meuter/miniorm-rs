@@ -41,14 +41,16 @@ impl SchemaArgs {
         let cols = self.columns().map(|col| col.name()).join(", ");
         match db {
             Database::Postgres | Database::Sqlite => {
-                let placeholders = (1..=self.columns().count())
-                    .map(|i| format!("${i}"))
+                let placeholders = self
+                    .columns()
+                    .enumerate()
+                    .map(|(i, _)| format!("${}", i + 1))
                     .join(", ");
                 format!("INSERT INTO {table} ({cols}) VALUES ({placeholders}) RETURNING id")
             }
             Database::MySql => {
                 // MySql uses `?` as placeholders and does not support `RETURNING id`
-                let placeholders = (1..=self.columns().count()).map(|_| "?").join(", ");
+                let placeholders = self.columns().map(|_| "?").join(", ");
                 format!("INSERT INTO {table} ({cols}) VALUES ({placeholders})")
             }
         }
@@ -69,6 +71,28 @@ impl SchemaArgs {
         let table = self.table_name();
         let cols = self.columns().map(|col| col.name()).join(", ");
         format!("SELECT {cols} FROM {table} ORDER BY id")
+    }
+
+    fn update(&self, db: Database) -> String {
+        let table = self.table_name();
+        let id = self.columns().count() + 1;
+        match db {
+            Database::Postgres | Database::Sqlite => {
+                let values = self
+                    .columns()
+                    .enumerate()
+                    .map(|(i, col)| format!("{}=${}", col.name(), i + 1))
+                    .join(", ");
+                format!("UPDATE {table} SET {values} WHERE id=${id}")
+            }
+            Database::MySql => {
+                let values = self
+                    .columns()
+                    .map(|col| format!("{}=?", col.name()))
+                    .join(", ");
+                format!("UPDATE {table} SET {values} WHERE id=?")
+            }
+        }
     }
 
     fn delete(&self, db: Database) -> String {
@@ -106,6 +130,7 @@ impl SchemaArgs {
         let create = self.create(db);
         let read = self.read(db);
         let list = self.list();
+        let update = self.update(db);
         let delete = self.delete(db);
         let delete_all = self.delete_all();
 
@@ -117,6 +142,7 @@ impl SchemaArgs {
                 const MINIORM_CREATE: &'static str = #create;
                 const MINIORM_READ: &'static str = #read;
                 const MINIORM_LIST: &'static str = #list;
+                const MINIORM_UPDATE: &'static str = #update;
                 const MINIORM_DELETE: &'static str = #delete;
                 const MINIORM_DELETE_ALL: &'static str = #delete_all;
                 const TABLE_NAME: &'static str = #table_name;

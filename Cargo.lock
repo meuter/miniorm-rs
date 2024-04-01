@@ -818,7 +818,6 @@ dependencies = [
  "async-trait",
  "dotenv",
  "iso_currency",
- "itertools",
  "miniorm",
  "miniorm-macros",
  "rust_decimal",

@@ -1,4 +1,4 @@
-use miniorm::{Crud, Entity};
+use miniorm::{Create, Entity};
 use sqlx::FromRow;
 
 /// A todo including a `description` and a `done` flag

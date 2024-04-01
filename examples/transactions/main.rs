@@ -1,5 +1,5 @@
 use iso_currency::Currency;
-use miniorm::{Crud, Entity};
+use miniorm::{Create, Entity};
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
 use serde::{Deserialize, Serialize};

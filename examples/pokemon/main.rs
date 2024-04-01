@@ -1,4 +1,4 @@
-use miniorm::{Crud, Entity, Store};
+use miniorm::{Create, Entity, Store};
 use sqlx::{prelude::Type, FromRow, MySql};
 
 #[derive(Debug, Clone, Eq, PartialEq, Type)]
@@ -54,11 +54,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut fetched = store.read(id).await?;
     assert_eq!(pikatchu, fetched);
 
-    // println!("Updating by id...");
-    // fetched.name = "Pikaaaaaatchuuuuuuu!".to_string();
-    // let id_after_update = store.update(id, &fetched).await?;
-    // assert_eq!(id_after_update, id);
-    //
+    println!("Updating by id...");
+    fetched.name = "Pikaaaaaatchuuuuuuu!".to_string();
+    let id_after_update = store.update(id, &fetched).await?;
+    assert_eq!(id_after_update, id);
+
     println!("Listing all...");
     let all = store.list().await?;
     assert_eq!(all.len(), 1);

@@ -10,4 +10,4 @@ mod traits;
 
 pub use miniorm_macros::Entity;
 pub use store::Store;
-pub use traits::{Bind, BindableQuery, Crud, Schema};
+pub use traits::{Bind, BindableQuery, Create, Schema};
