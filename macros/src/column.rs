@@ -1,7 +1,7 @@
-use std::collections::HashMap;
-
 use darling::FromField;
 use quote::quote;
+use std::collections::HashMap;
+use std::string::ToString;
 use syn::{Field, Ident, Meta};
 
 use crate::database::Database;
@@ -82,7 +82,7 @@ impl Column {
         self.0.schema.get(db).as_ref().unwrap_or_else(|| {
             panic!(
                 "missing #[{}(...)] declaration for field '{}'",
-                db,
+                db.to_string().to_lowercase(),
                 self.ident()
             )
         })

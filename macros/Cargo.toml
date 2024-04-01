@@ -18,6 +18,7 @@ darling = "0.20.8"
 itertools = "0.12.1"
 proc-macro2 = "1.0.79"
 quote = "1.0.35"
+strum = { version = "0.26.2", features = ["derive"] }
 syn = "2.0.52"
 
 [dev-dependencies]
