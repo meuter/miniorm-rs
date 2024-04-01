@@ -6,7 +6,7 @@ use sqlx::{
 
 /// Trait that should arguable be in [`sqlx`] denoting all types of queries
 /// ([`Query`] and [`QueryAs`]) on which the `bind` method can be called.
-pub trait BindableQuery<'q, DB>
+pub trait Bind<'q, DB>
 where
     DB: Database,
 {
@@ -16,7 +16,7 @@ where
         T: 'q + Send + Encode<'q, DB> + Type<DB>;
 }
 
-impl<'q, DB> BindableQuery<'q, DB> for Query<'q, DB, <DB as HasArguments<'q>>::Arguments>
+impl<'q, DB> Bind<'q, DB> for Query<'q, DB, <DB as HasArguments<'q>>::Arguments>
 where
     DB: Database,
 {
@@ -28,7 +28,7 @@ where
     }
 }
 
-impl<'q, DB, O> BindableQuery<'q, DB> for QueryAs<'q, DB, O, <DB as HasArguments<'q>>::Arguments>
+impl<'q, DB, O> Bind<'q, DB> for QueryAs<'q, DB, O, <DB as HasArguments<'q>>::Arguments>
 where
     DB: Database,
 {

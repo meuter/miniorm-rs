@@ -107,7 +107,7 @@ impl SchemaArgs {
             impl ::miniorm::BindColumn<#db> for #ident {
                 fn bind_column<'q, Q>(&self, query: Q, column_name: &'static str) -> Q
                 where
-                    Q: ::miniorm::BindableQuery<'q, #db> {
+                    Q: ::miniorm::Bind<'q, #db> {
                     match column_name {
                         #(#col_name => query.bind(#col_value),)*
                         _ => query,
