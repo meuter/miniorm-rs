@@ -1,6 +1,7 @@
 use crate::{
+    prelude::RowsAffected,
     traits::{Bind, Schema},
-    Update,
+    Delete, Update,
 };
 use async_trait::async_trait;
 use sqlx::{
@@ -177,92 +178,31 @@ where
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Delete
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-#[cfg(feature = "postgres")]
-mod postgres_delete {
-    use crate::{Delete, Schema, Store};
-    use async_trait::async_trait;
-    use sqlx::Postgres;
 
-    #[async_trait]
-    impl<E> Delete<E> for Store<Postgres, E>
-    where
-        E: Schema<Postgres> + Sync,
-    {
-        async fn delete(&self, id: i64) -> sqlx::Result<()> {
-            let res = sqlx::query(E::MINIORM_DELETE)
-                .bind(id)
-                .execute(&self.db)
-                .await?;
-            if res.rows_affected() == 0 {
-                Err(sqlx::Error::RowNotFound)
-            } else {
-                Ok(())
-            }
-        }
-
-        async fn delete_all(&self) -> sqlx::Result<u64> {
-            let res = sqlx::query(E::MINIORM_DELETE_ALL).execute(&self.db).await?;
-            Ok(res.rows_affected() as u64)
+#[async_trait]
+impl<DB, E> Delete<E> for Store<DB, E>
+where
+    DB: Database,
+    E: Schema<DB> + Sync,
+    <DB as Database>::QueryResult: RowsAffected,
+    for<'c> &'c mut <DB as sqlx::Database>::Connection: Executor<'c, Database = DB>,
+    for<'c> <DB as HasArguments<'c>>::Arguments: IntoArguments<'c, DB>,
+    for<'c> i64: Type<DB> + Encode<'c, DB>,
+{
+    async fn delete(&self, id: i64) -> sqlx::Result<()> {
+        let res = sqlx::query(E::MINIORM_DELETE)
+            .bind(id)
+            .execute(&self.db)
+            .await?;
+        if res.rows_affected() == 0 {
+            Err(sqlx::Error::RowNotFound)
+        } else {
+            Ok(())
         }
     }
-}
 
-#[cfg(feature = "sqlite")]
-mod sqlite_delete {
-    use crate::{Delete, Schema, Store};
-    use async_trait::async_trait;
-    use sqlx::Sqlite;
-
-    #[async_trait]
-    impl<E> Delete<E> for Store<Sqlite, E>
-    where
-        E: Schema<Sqlite> + Sync,
-    {
-        async fn delete(&self, id: i64) -> sqlx::Result<()> {
-            let res = sqlx::query(E::MINIORM_DELETE)
-                .bind(id)
-                .execute(&self.db)
-                .await?;
-            if res.rows_affected() == 0 {
-                Err(sqlx::Error::RowNotFound)
-            } else {
-                Ok(())
-            }
-        }
-
-        async fn delete_all(&self) -> sqlx::Result<u64> {
-            let res = sqlx::query(E::MINIORM_DELETE_ALL).execute(&self.db).await?;
-            Ok(res.rows_affected() as u64)
-        }
-    }
-}
-
-#[cfg(feature = "mysql")]
-mod mysql_delete {
-    use crate::{Delete, Schema, Store};
-    use async_trait::async_trait;
-    use sqlx::MySql;
-
-    #[async_trait]
-    impl<E> Delete<E> for Store<MySql, E>
-    where
-        E: Schema<MySql> + Sync,
-    {
-        async fn delete(&self, id: i64) -> sqlx::Result<()> {
-            let res = sqlx::query(E::MINIORM_DELETE)
-                .bind(id)
-                .execute(&self.db)
-                .await?;
-            if res.rows_affected() == 0 {
-                Err(sqlx::Error::RowNotFound)
-            } else {
-                Ok(())
-            }
-        }
-
-        async fn delete_all(&self) -> sqlx::Result<u64> {
-            let res = sqlx::query(E::MINIORM_DELETE_ALL).execute(&self.db).await?;
-            Ok(res.rows_affected() as u64)
-        }
+    async fn delete_all(&self) -> sqlx::Result<u64> {
+        let res = sqlx::query(E::MINIORM_DELETE_ALL).execute(&self.db).await?;
+        Ok(res.rows_affected() as u64)
     }
 }

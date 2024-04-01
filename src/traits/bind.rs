@@ -1,8 +1,5 @@
-use sqlx::{
-    database::{Database, HasArguments},
-    query::{Query, QueryAs},
-    Encode, Type,
-};
+use super::sqlx_ext::BindableQuery;
+use sqlx::database::Database;
 
 /// Trait that can be implemented on a `struct` to bind the fields of
 /// of this struct with a [sqlx::query::QueryAs] or a [sqlx::query::Query].
@@ -40,40 +37,4 @@ pub trait Bind<DB: Database> {
     fn bind<'q, Q>(&self, query: Q, column_name: &'static str) -> Q
     where
         Q: BindableQuery<'q, DB>;
-}
-
-/// Trait to abstract calls to a `bind` method, to generalize
-/// [`Query`] and [`QueryAs`].
-pub trait BindableQuery<'q, DB>
-where
-    DB: Database,
-{
-    /// Bind a value for use with this SQL query.
-    fn bind<T>(self, value: T) -> Self
-    where
-        T: 'q + Send + Encode<'q, DB> + Type<DB>;
-}
-
-impl<'q, DB> BindableQuery<'q, DB> for Query<'q, DB, <DB as HasArguments<'q>>::Arguments>
-where
-    DB: Database,
-{
-    fn bind<T>(self, value: T) -> Self
-    where
-        T: 'q + Send + Encode<'q, DB> + Type<DB>,
-    {
-        Query::bind(self, value)
-    }
-}
-
-impl<'q, DB, O> BindableQuery<'q, DB> for QueryAs<'q, DB, O, <DB as HasArguments<'q>>::Arguments>
-where
-    DB: Database,
-{
-    fn bind<T>(self, value: T) -> Self
-    where
-        T: 'q + Send + Encode<'q, DB> + Type<DB>,
-    {
-        QueryAs::bind(self, value)
-    }
 }
