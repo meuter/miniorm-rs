@@ -67,3 +67,13 @@ impl RowsAffected for sqlx::sqlite::SqliteQueryResult {
         sqlx::sqlite::SqliteQueryResult::rows_affected(self)
     }
 }
+
+/// Trait that allows to determine if a database supports
+/// the `RETURNING ...` syntax in SQL queries.
+pub trait SupportsReturning {}
+
+#[cfg(feature = "postgres")]
+impl SupportsReturning for sqlx::Postgres {}
+
+#[cfg(feature = "sqlite")]
+impl SupportsReturning for sqlx::Sqlite {}
