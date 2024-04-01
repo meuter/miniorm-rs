@@ -1,7 +1,9 @@
 use miniorm::{Create, Entity, Store};
+use serde::{Deserialize, Serialize};
 use sqlx::{prelude::Type, FromRow, MySql};
+use std::string::ToString;
 
-#[derive(Debug, Clone, Eq, PartialEq, Type)]
+#[derive(Debug, Clone, Eq, PartialEq, Type, Serialize, Deserialize)]
 pub enum PokemonType {
     Unknown,
     Fire,
@@ -12,21 +14,13 @@ pub enum PokemonType {
     Rock,
 }
 
-impl Default for PokemonType {
-    fn default() -> Self {
-        Self::Unknown
-    }
-}
-
-/// A todo including a `description` and a `done` flag
 #[derive(Debug, Clone, Eq, PartialEq, FromRow, Entity)]
 struct Pokemon {
     #[mysql(TEXT NOT NULL)]
     name: String,
 
     #[mysql(VARCHAR(40) NOT NULL)]
-    // TODO: figure out the ENUM type in mysql
-    #[sqlx(skip)]
+    #[sqlx(json)]
     ty: PokemonType,
 }
 
@@ -41,7 +35,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let pikatchu = Pokemon {
         name: "Pikatchu".to_string(),
-        ty: PokemonType::default(),
+        ty: PokemonType::Electric,
     };
 
     println!("Recreating table...");
