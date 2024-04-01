@@ -29,6 +29,10 @@ use sqlx::Database;
 ///         SELECT selection, done FROM todo WHERE id=$1"#;
 ///     const MINIORM_LIST: &'static str = r#"
 ///         SELECT selection, done FROM todo ORDER BY id"#;
+///     const MINIORM_DELETE: &'static str = r#"
+///         DELETE FROM todo WHERE id=$1"#;
+///     const MINIORM_DELETE_ALL: &'static str = r#"
+///         DELETE FROM todo"#;
 ///     const TABLE_NAME: &'static str = "todo";
 ///     const COLUMNS: &'static [(&'static str, &'static str)] = &[
 ///         ("description", "TEXT NOT NULL"),
@@ -57,6 +61,12 @@ pub trait Schema<DB: Database> {
 
     /// SQL query to list all rows ordered by id
     const MINIORM_LIST: &'static str;
+
+    /// SQL query to delete a row by id
+    const MINIORM_DELETE: &'static str;
+
+    /// SQL query to delete all rows
+    const MINIORM_DELETE_ALL: &'static str;
 
     /// name of the table in the database
     const TABLE_NAME: &'static str;

@@ -64,14 +64,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     assert_eq!(all.len(), 1);
     assert_eq!(&fetched, &all[0]);
 
-    // println!("Deleting by id...");
-    // store.delete(id).await?;
-    //
-    // println!("Checking delete successful");
-    // assert!(matches!(
-    // store.read(id).await,
-    // Err(sqlx::Error::RowNotFound)
-    // ));
+    println!("Deleting by id...");
+    store.delete(id).await?;
+
+    println!("Checking delete successful");
+    assert!(matches!(
+        store.read(id).await,
+        Err(sqlx::Error::RowNotFound)
+    ));
 
     Ok(())
 }
