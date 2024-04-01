@@ -15,7 +15,7 @@ pub use store::Store;
 pub mod prelude {
     pub use super::store::Store;
     pub use super::traits::bind_col::BindColumn;
-    pub use super::traits::crud::{Create, Crud, Delete, Update};
+    pub use super::traits::crud::{Create, Crud, Delete, Read, Update};
     pub use super::traits::schema::Schema;
     pub use super::traits::sqlx::Bind;
     pub use miniorm_macros::Entity;
