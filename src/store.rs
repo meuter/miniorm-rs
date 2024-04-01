@@ -64,11 +64,13 @@ where
     usize: ColumnIndex<<DB as sqlx::Database>::Row>,
 {
     async fn create(&self, entity: &E) -> sqlx::Result<i64> {
-        let mut query = sqlx::query_as(E::MINIORM_CREATE);
-        for col in E::MINIORM_COLUMNS.iter() {
-            query = entity.bind_column(query, col)
-        }
-        let (id,) = query.fetch_one(&self.db).await?;
+        let (id,) = E::MINIORM_COLUMNS
+            .iter()
+            .fold(sqlx::query_as(E::MINIORM_CREATE), |query, col| {
+                entity.bind_column(query, col)
+            })
+            .fetch_one(&self.db)
+            .await?;
         Ok(id)
     }
 }
@@ -89,11 +91,13 @@ mod mysql {
         E: for<'r> FromRow<'r, MySqlRow> + Schema<MySql> + BindColumn<MySql> + Sync,
     {
         async fn create(&self, entity: &E) -> sqlx::Result<i64> {
-            let mut query = sqlx::query(E::MINIORM_CREATE);
-            for col in E::MINIORM_COLUMNS.iter() {
-                query = entity.bind_column(query, col)
-            }
-            let res = query.execute(&self.db).await?;
+            let res = E::MINIORM_COLUMNS
+                .iter()
+                .fold(sqlx::query(E::MINIORM_CREATE), |query, col| {
+                    entity.bind_column(query, col)
+                })
+                .execute(&self.db)
+                .await?;
             Ok(res.last_insert_id() as i64)
         }
     }
@@ -138,11 +142,14 @@ where
     usize: ColumnIndex<<DB as sqlx::Database>::Row>,
 {
     async fn update(&self, id: i64, entity: &E) -> sqlx::Result<i64> {
-        let mut query = sqlx::query(E::MINIORM_UPDATE);
-        for col in E::MINIORM_COLUMNS.iter() {
-            query = entity.bind_column(query, col)
-        }
-        query.bind(id).execute(&self.db).await?;
+        E::MINIORM_COLUMNS
+            .iter()
+            .fold(sqlx::query(E::MINIORM_UPDATE), |query, col| {
+                entity.bind_column(query, col)
+            })
+            .bind(id)
+            .execute(&self.db)
+            .await?;
         Ok(id)
     }
 }
