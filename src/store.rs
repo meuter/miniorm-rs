@@ -1,7 +1,7 @@
 use crate::{
     prelude::RowsAffected,
-    traits::{Bind, Schema},
-    Delete, Update,
+    traits::{Bind, Schema, SupportsReturning},
+    Create, Delete, Update,
 };
 use async_trait::async_trait;
 use sqlx::{
@@ -59,47 +59,23 @@ where
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// Create
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-#[cfg(feature = "postgres")]
-mod postgres {
-    use crate::{Bind, Create, Schema, Store};
-    use async_trait::async_trait;
-    use sqlx::{postgres::PgRow, FromRow, Postgres};
-
-    #[async_trait]
-    impl<E> Create<E> for Store<Postgres, E>
-    where
-        E: for<'r> FromRow<'r, PgRow> + Schema<Postgres> + Bind<Postgres> + Sync,
-    {
-        async fn create(&self, entity: &E) -> sqlx::Result<i64> {
-            let mut query = sqlx::query_as(E::MINIORM_CREATE);
-            for col in E::MINIORM_COLUMNS.iter() {
-                query = entity.bind(query, col)
-            }
-            let (id,) = query.fetch_one(&self.db).await?;
-            Ok(id)
+#[async_trait]
+impl<DB, E> Create<E> for Store<DB, E>
+where
+    DB: Database + SupportsReturning,
+    E: for<'r> FromRow<'r, <DB as Database>::Row> + Schema<DB> + Bind<DB> + Sync,
+    for<'c> &'c mut <DB as sqlx::Database>::Connection: Executor<'c, Database = DB>,
+    for<'c> <DB as HasArguments<'c>>::Arguments: IntoArguments<'c, DB>,
+    for<'c> i64: Type<DB> + Decode<'c, DB> + Encode<'c, DB>,
+    usize: ColumnIndex<<DB as sqlx::Database>::Row>,
+{
+    async fn create(&self, entity: &E) -> sqlx::Result<i64> {
+        let mut query = sqlx::query_as(E::MINIORM_CREATE);
+        for col in E::MINIORM_COLUMNS.iter() {
+            query = entity.bind(query, col)
         }
-    }
-}
-
-#[cfg(feature = "sqlite")]
-mod sqlite {
-    use crate::{Bind, Create, Schema, Store};
-    use async_trait::async_trait;
-    use sqlx::{sqlite::SqliteRow, FromRow, Sqlite};
-
-    #[async_trait]
-    impl<E> Create<E> for Store<Sqlite, E>
-    where
-        E: for<'r> FromRow<'r, SqliteRow> + Schema<Sqlite> + Bind<Sqlite> + Sync,
-    {
-        async fn create(&self, entity: &E) -> sqlx::Result<i64> {
-            let mut query = sqlx::query_as(E::MINIORM_CREATE);
-            for col in E::MINIORM_COLUMNS.iter() {
-                query = entity.bind(query, col)
-            }
-            let (id,) = query.fetch_one(&self.db).await?;
-            Ok(id)
-        }
+        let (id,) = query.fetch_one(&self.db).await?;
+        Ok(id)
     }
 }
 
