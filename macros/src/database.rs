@@ -1,6 +1,8 @@
+use std::borrow::Cow;
+
 use quote::{format_ident, quote};
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Debug)]
 pub enum Database {
     Postgres,
     Sqlite,
@@ -15,10 +17,19 @@ impl Database {
     }
 
     pub fn id_declaration(&self) -> &str {
+        use Database::*;
         match self {
-            Database::Postgres => "id BIGSERIAL PRIMARY KEY",
-            Database::Sqlite => "id INTEGER PRIMARY KEY AUTOINCREMENT",
-            Database::MySql => "id INT AUTO_INCREMENT NOT NULL PRIMARY KEY",
+            Postgres => "id BIGSERIAL PRIMARY KEY",
+            Sqlite => "id INTEGER PRIMARY KEY AUTOINCREMENT",
+            MySql => "id INT AUTO_INCREMENT NOT NULL PRIMARY KEY",
+        }
+    }
+
+    pub fn placeholder(&self, index: usize) -> Cow<'_, str> {
+        use Database::*;
+        match self {
+            Postgres | Sqlite => format!("${index}").into(),
+            MySql => "?".into(),
         }
     }
 }
