@@ -39,7 +39,7 @@ impl SchemaArgs {
             let id_declaration = db.id_declaration();
             let col_declarations = self
                 .columns()
-                .map(|col| format!("{} {}", col.name(), col.sql_type(db)))
+                .map(|col| format!("{} {}", col.name(), col.schema_for_db(db)))
                 .join(", ");
             format!("CREATE TABLE IF NOT EXISTS {table} ({id_declaration}, {col_declarations})")
         };

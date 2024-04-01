@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use darling::FromField;
 use quote::quote;
 use syn::{Field, Ident, Meta};
@@ -8,9 +10,8 @@ use crate::database::Database;
 #[darling(attributes(sqlx))]
 struct InnerColumn {
     ident: Option<Ident>,
-    postgres: Option<String>,
-    sqlite: Option<String>,
-    mysql: Option<String>,
+    #[darling(skip)]
+    schema: HashMap<Database, String>,
     rename: Option<String>,
     #[darling(default)]
     json: bool,
@@ -23,6 +24,8 @@ pub struct Column(InnerColumn);
 
 impl FromField for Column {
     fn from_field(field: &Field) -> darling::Result<Self> {
+        use Database::*;
+
         let mut col = InnerColumn::from_field(field)?;
 
         // manually parse the #[postgres(...)], #[sqlite(...)] and
@@ -32,15 +35,15 @@ impl FromField for Column {
             if let Meta::List(list) = &attr.meta {
                 let schema = list.tokens.to_string();
                 if list.path.is_ident("postgres") {
-                    col.postgres = Some(schema);
+                    col.schema.insert(Postgres, schema);
                 } else if list.path.is_ident("sqlite") {
-                    col.sqlite = Some(schema)
+                    col.schema.insert(Sqlite, schema);
                 } else if list.path.is_ident("mysql") {
-                    col.mysql = Some(schema)
+                    col.schema.insert(MySql, schema);
                 } else if list.path.is_ident("column") {
-                    col.sqlite = Some(schema.clone());
-                    col.postgres = Some(schema.clone());
-                    col.mysql = Some(schema);
+                    col.schema.insert(Postgres, schema.clone());
+                    col.schema.insert(Sqlite, schema.clone());
+                    col.schema.insert(MySql, schema);
                 }
             }
         }
@@ -62,15 +65,6 @@ impl Column {
             .unwrap_or(self.ident().to_string())
     }
 
-    pub fn sql_type(&self, db: &Database) -> &String {
-        use Database::*;
-        match db {
-            Postgres => self.postgres(),
-            Sqlite => self.sqlite(),
-            MySql => self.mysql(),
-        }
-    }
-
     pub fn value(&self) -> proc_macro2::TokenStream {
         let field_ident = self.ident();
         if self.0.json {
@@ -80,40 +74,15 @@ impl Column {
         }
     }
 
-    pub fn has_postgres(&self) -> bool {
-        self.0.postgres.is_some()
+    pub fn supports_db(&self, db: &Database) -> bool {
+        self.0.schema.contains_key(db)
     }
 
-    pub fn postgres(&self) -> &String {
-        self.0.postgres.as_ref().unwrap_or_else(|| {
+    pub fn schema_for_db(&self, db: &Database) -> &String {
+        self.0.schema.get(db).as_ref().unwrap_or_else(|| {
             panic!(
-                "missing #[postgres(...)] declaration for field '{}'",
-                self.ident()
-            )
-        })
-    }
-
-    pub fn has_mysql(&self) -> bool {
-        self.0.mysql.is_some()
-    }
-
-    pub fn mysql(&self) -> &String {
-        self.0.mysql.as_ref().unwrap_or_else(|| {
-            panic!(
-                "missing #[mysql(...)] declaration for field '{}'",
-                self.ident()
-            )
-        })
-    }
-
-    pub fn has_sqlite(&self) -> bool {
-        self.0.sqlite.is_some()
-    }
-
-    pub fn sqlite(&self) -> &String {
-        self.0.sqlite.as_ref().unwrap_or_else(|| {
-            panic!(
-                "missing #[sqlite(...)] declaration for field '{}'",
+                "missing #[{}(...)] declaration for field '{}'",
+                db,
                 self.ident()
             )
         })
