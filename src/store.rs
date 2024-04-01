@@ -1,6 +1,6 @@
 use crate::{
     prelude::RowsAffected,
-    traits::{Bind, Schema, SupportsReturning},
+    traits::{BindColumn, Schema, SupportsReturning},
     Create, Delete, Update,
 };
 use async_trait::async_trait;
@@ -63,7 +63,7 @@ where
 impl<DB, E> Create<E> for Store<DB, E>
 where
     DB: Database + SupportsReturning,
-    E: for<'r> FromRow<'r, <DB as Database>::Row> + Schema<DB> + Bind<DB> + Sync,
+    E: for<'r> FromRow<'r, <DB as Database>::Row> + Schema<DB> + BindColumn<DB> + Sync,
     for<'c> &'c mut <DB as sqlx::Database>::Connection: Executor<'c, Database = DB>,
     for<'c> <DB as HasArguments<'c>>::Arguments: IntoArguments<'c, DB>,
     for<'c> i64: Type<DB> + Decode<'c, DB> + Encode<'c, DB>,
@@ -72,7 +72,7 @@ where
     async fn create(&self, entity: &E) -> sqlx::Result<i64> {
         let mut query = sqlx::query_as(E::MINIORM_CREATE);
         for col in E::MINIORM_COLUMNS.iter() {
-            query = entity.bind(query, col)
+            query = entity.bind_column(query, col)
         }
         let (id,) = query.fetch_one(&self.db).await?;
         Ok(id)
@@ -81,19 +81,19 @@ where
 
 #[cfg(feature = "mysql")]
 mod mysql {
-    use crate::{Bind, Create, Schema, Store};
+    use crate::{BindColumn, Create, Schema, Store};
     use async_trait::async_trait;
     use sqlx::{mysql::MySqlRow, FromRow, MySql};
 
     #[async_trait]
     impl<E> Create<E> for Store<MySql, E>
     where
-        E: for<'r> FromRow<'r, MySqlRow> + Schema<MySql> + Bind<MySql> + Sync,
+        E: for<'r> FromRow<'r, MySqlRow> + Schema<MySql> + BindColumn<MySql> + Sync,
     {
         async fn create(&self, entity: &E) -> sqlx::Result<i64> {
             let mut query = sqlx::query(E::MINIORM_CREATE);
             for col in E::MINIORM_COLUMNS.iter() {
-                query = entity.bind(query, col)
+                query = entity.bind_column(query, col)
             }
             let res = query.execute(&self.db).await?;
             Ok(res.last_insert_id() as i64)
@@ -136,7 +136,7 @@ where
     DB: Database,
     for<'c> &'c mut <DB as sqlx::Database>::Connection: Executor<'c, Database = DB>,
     for<'c> <DB as HasArguments<'c>>::Arguments: IntoArguments<'c, DB>,
-    E: for<'r> FromRow<'r, <DB as Database>::Row> + Schema<DB> + Bind<DB> + Sync,
+    E: for<'r> FromRow<'r, <DB as Database>::Row> + Schema<DB> + BindColumn<DB> + Sync,
     for<'c> i64: Type<DB> + Decode<'c, DB> + Encode<'c, DB>,
     usize: ColumnIndex<<DB as sqlx::Database>::Row>,
 {
@@ -144,7 +144,7 @@ where
     async fn update(&self, id: i64, entity: &E) -> sqlx::Result<i64> {
         let mut query = sqlx::query(E::MINIORM_UPDATE);
         for col in E::MINIORM_COLUMNS.iter() {
-            query = entity.bind(query, col)
+            query = entity.bind_column(query, col)
         }
         query.bind(id).execute(&self.db).await?;
         Ok(id)

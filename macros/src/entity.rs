@@ -97,15 +97,15 @@ impl SchemaArgs {
         }
     }
 
-    pub fn generate_bind_impl(&self, db: &Database) -> proc_macro2::TokenStream {
+    pub fn generate_bind_col_impl(&self, db: &Database) -> proc_macro2::TokenStream {
         let ident = &self.ident;
         let col_name = self.columns().map(|col| col.name());
         let col_value = self.columns().map(|col| col.value());
         let db = db.to_token_stream();
 
         quote! {
-            impl ::miniorm::Bind<#db> for #ident {
-                fn bind<'q, Q>(&self, query: Q, column_name: &'static str) -> Q
+            impl ::miniorm::BindColumn<#db> for #ident {
+                fn bind_column<'q, Q>(&self, query: Q, column_name: &'static str) -> Q
                 where
                     Q: ::miniorm::BindableQuery<'q, #db> {
                     match column_name {

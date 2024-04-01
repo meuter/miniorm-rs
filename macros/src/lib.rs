@@ -21,7 +21,7 @@ pub fn derive_entity(input: TokenStream) -> TokenStream {
     for db in Database::iter() {
         if args.columns().any(|col| col.supports_db(&db)) {
             let schema_impl = args.generate_schema_impl(&db);
-            let bind_impl = args.generate_bind_impl(&db);
+            let bind_impl = args.generate_bind_col_impl(&db);
             result = quote! {
                 #result
                 #schema_impl

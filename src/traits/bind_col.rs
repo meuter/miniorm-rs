@@ -7,7 +7,7 @@ use sqlx::database::Database;
 /// # Example
 ///
 /// ```
-/// use miniorm::{Bind, BindableQuery};
+/// use miniorm::{BindColumn, BindableQuery};
 /// use sqlx::Postgres;
 ///
 /// struct Todo {
@@ -15,8 +15,8 @@ use sqlx::database::Database;
 ///     done: bool,
 /// }
 ///
-/// impl Bind<Postgres> for Todo {
-///     fn bind<'q, Q>(&self, query: Q, column_name: &'static str) -> Q
+/// impl BindColumn<Postgres> for Todo {
+///     fn bind_column<'q, Q>(&self, query: Q, column_name: &'static str) -> Q
 ///     where
 ///         Q: ::miniorm::BindableQuery<'q, Postgres> {
 ///         match column_name {
@@ -32,9 +32,9 @@ use sqlx::database::Database;
 /// This trait can be derived automatically using the [Entity](miniorm_macros::Entity)
 /// derive macro.
 ///
-pub trait Bind<DB: Database> {
+pub trait BindColumn<DB: Database> {
     /// binds a specific column using the provided query.
-    fn bind<'q, Q>(&self, query: Q, column_name: &'static str) -> Q
+    fn bind_column<'q, Q>(&self, query: Q, column_name: &'static str) -> Q
     where
         Q: BindableQuery<'q, DB>;
 }
