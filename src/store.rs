@@ -67,7 +67,7 @@ mod postgres {
     {
         async fn create(&self, entity: &E) -> sqlx::Result<i64> {
             let mut query = sqlx::query_as(E::MINIORM_CREATE);
-            for col in E::COLUMNS.iter().map(|col| col.0) {
+            for col in E::MINIORM_COLUMNS.iter() {
                 query = entity.bind(query, col)
             }
             let (id,) = query.fetch_one(&self.db).await?;
@@ -89,7 +89,7 @@ mod sqlite {
     {
         async fn create(&self, entity: &E) -> sqlx::Result<i64> {
             let mut query = sqlx::query_as(E::MINIORM_CREATE);
-            for col in E::COLUMNS.iter().map(|col| col.0) {
+            for col in E::MINIORM_COLUMNS.iter() {
                 query = entity.bind(query, col)
             }
             let (id,) = query.fetch_one(&self.db).await?;
@@ -111,7 +111,7 @@ mod mysql {
     {
         async fn create(&self, entity: &E) -> sqlx::Result<i64> {
             let mut query = sqlx::query(E::MINIORM_CREATE);
-            for col in E::COLUMNS.iter().map(|col| col.0) {
+            for col in E::MINIORM_COLUMNS.iter() {
                 query = entity.bind(query, col)
             }
             let res = query.execute(&self.db).await?;
@@ -161,7 +161,7 @@ where
     /// Update an object in the database and returns its `id`.
     pub async fn update(&self, id: i64, entity: &E) -> sqlx::Result<i64> {
         let mut query = sqlx::query(E::MINIORM_UPDATE);
-        for col in E::COLUMNS.iter().map(|col| col.0) {
+        for col in E::MINIORM_COLUMNS.iter() {
             query = entity.bind(query, col)
         }
         query.bind(id).execute(&self.db).await?;
