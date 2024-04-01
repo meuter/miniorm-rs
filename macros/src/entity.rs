@@ -119,12 +119,6 @@ impl SchemaArgs {
         let ident = &self.ident;
         let table_name = self.table_name();
         let col_name = self.columns().map(|col| col.name());
-        let col_type = self.columns().map(|col| match db {
-            Database::Postgres => col.postgres(),
-            Database::Sqlite => col.sqlite(),
-            Database::MySql => col.mysql(),
-        });
-
         let drop_table = self.drop_table();
         let create_table = self.create_table(db);
         let create = self.create(db);
@@ -145,9 +139,9 @@ impl SchemaArgs {
                 const MINIORM_UPDATE: &'static str = #update;
                 const MINIORM_DELETE: &'static str = #delete;
                 const MINIORM_DELETE_ALL: &'static str = #delete_all;
-                const TABLE_NAME: &'static str = #table_name;
-                const COLUMNS: &'static [(&'static str, &'static str)] = &[
-                    #((#col_name, #col_type),)*
+                const MINIORM_TABLE_NAME: &'static str = #table_name;
+                const MINIORM_COLUMNS: &'static [&'static str] = &[
+                    #(#col_name,)*
                 ];
             }
         }

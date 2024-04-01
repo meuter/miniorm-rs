@@ -35,10 +35,10 @@ use sqlx::Database;
 ///         DELETE FROM todo WHERE id=$1"#;
 ///     const MINIORM_DELETE_ALL: &'static str = r#"
 ///         DELETE FROM todo"#;
-///     const TABLE_NAME: &'static str = "todo";
-///     const COLUMNS: &'static [(&'static str, &'static str)] = &[
-///         ("description", "TEXT NOT NULL"),
-///         ("done", "BOOLEAN NOT NULL"),
+///     const MINIORM_TABLE_NAME: &'static str = "todo";
+///     const MINIORM_COLUMNS: &'static [&'static str] = &[
+///         "description",
+///         "done",
 ///     ];
 /// }
 /// ```
@@ -74,8 +74,8 @@ pub trait Schema<DB: Database> {
     const MINIORM_DELETE_ALL: &'static str;
 
     /// name of the table in the database
-    const TABLE_NAME: &'static str;
+    const MINIORM_TABLE_NAME: &'static str;
 
     /// list of all the columns and their postgress types
-    const COLUMNS: &'static [(&'static str, &'static str)];
+    const MINIORM_COLUMNS: &'static [&'static str];
 }

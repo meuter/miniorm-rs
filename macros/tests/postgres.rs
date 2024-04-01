@@ -14,7 +14,7 @@ mod table_name {
             y: i64,
         }
 
-        assert_eq!(<Point as Schema<Postgres>>::TABLE_NAME, "point");
+        assert_eq!(<Point as Schema<Postgres>>::MINIORM_TABLE_NAME, "point");
     }
 
     #[test]
@@ -28,7 +28,7 @@ mod table_name {
             y: i64,
         }
 
-        assert_eq!(<Point as Schema<Postgres>>::TABLE_NAME, "coord");
+        assert_eq!(<Point as Schema<Postgres>>::MINIORM_TABLE_NAME, "coord");
     }
 }
 
@@ -45,13 +45,11 @@ mod columns {
             y: i64,
         }
 
-        let columns = <Point as Schema<Postgres>>::COLUMNS;
+        let columns = <Point as Schema<Postgres>>::MINIORM_COLUMNS;
 
         assert_eq!(columns.len(), 2);
-        assert_eq!(columns[0].0, "x");
-        assert_eq!(columns[0].1, "XXX YYY");
-        assert_eq!(columns[1].0, "y");
-        assert_eq!(columns[1].1, "AAA BBB");
+        assert_eq!(columns[0], "x");
+        assert_eq!(columns[1], "y");
     }
 
     #[test]
@@ -65,11 +63,10 @@ mod columns {
             y: i64,
         }
 
-        let columns = <Point as Schema<Postgres>>::COLUMNS;
+        let columns = <Point as Schema<Postgres>>::MINIORM_COLUMNS;
 
         assert_eq!(columns.len(), 1);
-        assert_eq!(columns[0].0, "x");
-        assert_eq!(columns[0].1, "XXX YYY");
+        assert_eq!(columns[0], "x");
     }
 
     #[test]
@@ -83,12 +80,10 @@ mod columns {
             y: i64,
         }
 
-        let columns = <Point as Schema<Postgres>>::COLUMNS;
+        let columns = <Point as Schema<Postgres>>::MINIORM_COLUMNS;
 
         assert_eq!(columns.len(), 2);
-        assert_eq!(columns[0].0, "x");
-        assert_eq!(columns[0].1, "XXX YYY");
-        assert_eq!(columns[1].0, "z");
-        assert_eq!(columns[1].1, "AAA BBB");
+        assert_eq!(columns[0], "x");
+        assert_eq!(columns[1], "z");
     }
 }
