@@ -26,7 +26,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     store.recreate_table().await?;
 
     println!("Inserting...");
-    let id = store.create(&todo).await?;
+    let todo = store.create(todo).await?;
+    let id = todo.id();
+    let todo = todo.into_inner();
 
     println!("Retrieveing by id...");
     let mut fetched = store.read(id).await?;

@@ -42,7 +42,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     store.recreate_table().await?;
 
     println!("Inserting...");
-    let id = store.create(&pikatchu).await?;
+    let pikatchu = store.create(pikatchu).await?;
+    let id = pikatchu.id();
+    let pikatchu = pikatchu.into_inner();
 
     println!("Retrieveing by id...");
     let mut fetched = store.read(id).await?;
