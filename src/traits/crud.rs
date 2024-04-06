@@ -23,7 +23,7 @@ pub trait Read<E> {
 #[async_trait]
 pub trait Update<E> {
     /// Update an object in the database and returns its `id`.
-    async fn update(&self, id: i64, entity: &E) -> sqlx::Result<i64>;
+    async fn update(&self, entity: WithId<E>) -> sqlx::Result<WithId<E>>;
 }
 
 /// \[D\]elete CRUD operation

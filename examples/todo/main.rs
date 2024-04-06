@@ -29,28 +29,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let todo = store.create(todo).await?;
 
     println!("Retrieveing by id...");
-    let fetched = store.read(todo.id()).await?;
+    let mut fetched = store.read(todo.id()).await?;
     assert_eq!(todo, fetched);
-
-    let id = fetched.id();
-    let mut fetched = fetched.into_inner();
 
     println!("Updating by id...");
     fetched.done = true;
-    let id_after_update = store.update(id, &fetched).await?;
-    assert_eq!(id_after_update, id);
+    let after_update = store.update(fetched).await?;
+    assert_eq!(after_update.id(), todo.id());
 
-    // println!("Listing all...");
-    // let all = store.list().await?;
-    // assert_eq!(all.len(), 1);
-    // assert_eq!(&fetched, &all[0]);
+    println!("Listing all...");
+    let all = store.list().await?;
+    assert_eq!(all.len(), 1);
+    assert_eq!(&after_update, &all[0]);
 
     println!("Deleting by id...");
-    store.delete(id).await?;
+    store.delete(todo.id()).await?;
 
     println!("Checking delete successful");
     assert!(matches!(
-        store.read(id).await,
+        store.read(todo.id()).await,
         Err(sqlx::Error::RowNotFound)
     ));
 

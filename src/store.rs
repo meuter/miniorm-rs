@@ -140,20 +140,20 @@ where
     DB: Database,
     for<'c> &'c mut <DB as sqlx::Database>::Connection: Executor<'c, Database = DB>,
     for<'c> <DB as HasArguments<'c>>::Arguments: IntoArguments<'c, DB>,
-    E: for<'r> FromRow<'r, <DB as Database>::Row> + Schema<DB> + BindColumn<DB> + Sync,
+    E: for<'r> FromRow<'r, <DB as Database>::Row> + Schema<DB> + BindColumn<DB> + Sync + Send,
     for<'c> i64: Type<DB> + Decode<'c, DB> + Encode<'c, DB>,
     usize: ColumnIndex<<DB as sqlx::Database>::Row>,
 {
-    async fn update(&self, id: i64, entity: &E) -> sqlx::Result<i64> {
+    async fn update(&self, entity: WithId<E>) -> sqlx::Result<WithId<E>> {
         E::MINIORM_COLUMNS
             .iter()
             .fold(sqlx::query(E::MINIORM_UPDATE), |query, col| {
                 entity.bind_column(query, col)
             })
-            .bind(id)
+            .bind(entity.id())
             .execute(&self.db)
             .await?;
-        Ok(id)
+        Ok(entity)
     }
 }
 
