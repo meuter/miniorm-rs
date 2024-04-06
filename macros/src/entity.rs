@@ -60,8 +60,11 @@ impl SchemaArgs {
         };
 
         // Read
-        let read = format!("SELECT {cols} FROM {table} WHERE id={}", db.placeholder(1));
-        let list = format!("SELECT {cols} FROM {table} ORDER BY id");
+        let read = format!(
+            "SELECT {cols}, id FROM {table} WHERE id={}",
+            db.placeholder(1)
+        );
+        let list = format!("SELECT {cols}, id FROM {table} ORDER BY id");
 
         // Update
         let update = {

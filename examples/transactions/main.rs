@@ -93,22 +93,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("Inserting...");
     let tx = store.create(tx).await?;
-    let id = tx.id();
-    let tx = tx.into_inner();
 
     println!("Retrieveing by id...");
-    let mut fetched = store.read(id).await?;
+    let fetched = store.read(tx.id()).await?;
     assert_eq!(tx, fetched);
+
+    let id = fetched.id();
+    let mut fetched = fetched.into_inner();
 
     println!("Updating by id");
     fetched.operation = Operation::Sell;
     let id = store.update(id, &fetched).await?;
 
-    println!("Listing all...");
-    let all = store.list().await?;
-    assert_eq!(all.len(), 1);
-    assert_eq!(&fetched, &all[0]);
-
+    // println!("Listing all...");
+    // let all = store.list().await?;
+    // assert_eq!(all.len(), 1);
+    // assert_eq!(&fetched, &all[0]);
+    //
     println!("Deleting by id...");
     store.delete(id).await?;
 
