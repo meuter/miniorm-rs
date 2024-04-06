@@ -7,9 +7,11 @@
 
 mod store;
 mod traits;
+mod with_id;
 
 pub use miniorm_macros::Entity;
 pub use store::Store;
+pub use with_id::WithId;
 
 /// Prelude including all the necessary traits for convenience
 pub mod prelude {
@@ -19,5 +21,6 @@ pub mod prelude {
     pub use super::traits::schema::Schema;
     pub use super::traits::sqlx::Bind;
     pub use super::traits::table::Table;
+    pub use super::with_id::WithId;
     pub use miniorm_macros::Entity;
 }
