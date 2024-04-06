@@ -39,3 +39,5 @@ pub trait Delete<E> {
 /// CRUD operations
 #[async_trait]
 pub trait Crud<E>: Create<E> + Read<E> + Update<E> + Delete<E> {}
+
+impl<S, E> Crud<E> for S where S: Create<E> + Read<E> + Update<E> + Delete<E> {}

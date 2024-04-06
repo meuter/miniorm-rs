@@ -188,3 +188,27 @@ where
         Ok(res.rows_affected() as u64)
     }
 }
+
+#[cfg(feature = "axum")]
+impl<DB: Database, E> crate::traits::axum::IntoAxumRouter for Store<DB, E>
+where
+    E: Schema<DB>
+        + for<'r> FromRow<'r, <DB as Database>::Row>
+        + crate::traits::bind_col::BindColumn<DB>,
+    E: serde::Serialize + for<'de> serde::Deserialize<'de>,
+    E: Clone + Sync + Send + Unpin + 'static,
+    Store<DB, E>: crate::traits::crud::Crud<E> + Clone,
+{
+    fn into_axum_router<S>(self) -> axum::Router<S> {
+        crate::handler::Handler::new(self).into_axum_router()
+    }
+}
+
+impl<DB: Database, E> Clone for Store<DB, E> {
+    fn clone(&self) -> Self {
+        Self {
+            db: self.db.clone(),
+            entity: self.entity,
+        }
+    }
+}

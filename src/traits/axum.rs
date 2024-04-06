@@ -1,0 +1,32 @@
+use axum::Router;
+
+/// Trait representing a type that can be turned into
+/// an [`Router`].
+pub trait IntoAxumRouter {
+    /// Converts the store into an [`Router`]
+    /// that will handle all standard REST request to realize CRUD operations
+    /// on the store:
+    ///
+    /// - `GET /` will list all entities,
+    ///   - expected request payload: none
+    ///   - returned response body: `Json<Vec<WithId<E>>>`
+    /// - `POST /` will create a new entity,
+    ///   - expected request payload: `Json<E>`
+    ///   - returned response body: `Json<WithId<E>>`
+    /// - `PUT /` will update an existing entity,
+    ///   - expected request payload: `Json<WithId<E>>`
+    ///   - returned response body: `Json<WithId<E>>`
+    /// - `DELETE /` will delete all entities
+    ///   - expected request payload: none
+    ///   - returned response body: none
+    /// - `GET /:id` to retrieve one entity from the store
+    ///   - expected request payload: none
+    ///   - returned response body: `Json<E>`
+    /// - `PUT /:id` to update one entity in the store
+    ///   - expected request payload: `Json<E>`
+    ///   - returned response body: `Json<WithId<E>>`
+    /// - `DELETE /:id` to delete one entity from the store
+    ///   - expected request payload: none
+    ///   - returned response body: none
+    fn into_axum_router<S>(self) -> Router<S>;
+}
