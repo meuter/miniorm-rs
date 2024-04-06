@@ -1,6 +1,7 @@
 use crate::{
     prelude::{BindColumn, Create, Delete, Read, Schema, Table, Update},
     traits::sqlx::{RowsAffected, SupportsReturning},
+    WithId,
 };
 use async_trait::async_trait;
 use sqlx::{
@@ -57,13 +58,13 @@ where
 impl<DB, E> Create<E> for Store<DB, E>
 where
     DB: Database + SupportsReturning,
-    E: for<'r> FromRow<'r, <DB as Database>::Row> + Schema<DB> + BindColumn<DB> + Sync,
+    E: for<'r> FromRow<'r, <DB as Database>::Row> + Schema<DB> + BindColumn<DB> + Sync + Send,
     for<'c> &'c mut <DB as sqlx::Database>::Connection: Executor<'c, Database = DB>,
     for<'c> <DB as HasArguments<'c>>::Arguments: IntoArguments<'c, DB>,
     for<'c> i64: Type<DB> + Decode<'c, DB> + Encode<'c, DB>,
     usize: ColumnIndex<<DB as sqlx::Database>::Row>,
 {
-    async fn create(&self, entity: &E) -> sqlx::Result<i64> {
+    async fn create(&self, entity: E) -> sqlx::Result<WithId<E>> {
         let (id,) = E::MINIORM_COLUMNS
             .iter()
             .fold(sqlx::query_as(E::MINIORM_CREATE), |query, col| {
@@ -71,7 +72,7 @@ where
             })
             .fetch_one(&self.db)
             .await?;
-        Ok(id)
+        Ok(WithId::new(entity, id))
     }
 }
 
@@ -82,15 +83,15 @@ mod mysql {
 
     use crate::{
         prelude::{BindColumn, Create, Schema},
-        Store,
+        Store, WithId,
     };
 
     #[async_trait]
     impl<E> Create<E> for Store<MySql, E>
     where
-        E: for<'r> FromRow<'r, MySqlRow> + Schema<MySql> + BindColumn<MySql> + Sync,
+        E: for<'r> FromRow<'r, MySqlRow> + Schema<MySql> + BindColumn<MySql> + Sync + Send,
     {
-        async fn create(&self, entity: &E) -> sqlx::Result<i64> {
+        async fn create(&self, entity: E) -> sqlx::Result<WithId<E>> {
             let res = E::MINIORM_COLUMNS
                 .iter()
                 .fold(sqlx::query(E::MINIORM_CREATE), |query, col| {
@@ -98,7 +99,8 @@ mod mysql {
                 })
                 .execute(&self.db)
                 .await?;
-            Ok(res.last_insert_id() as i64)
+            let id = res.last_insert_id() as i64;
+            Ok(WithId::new(entity, id))
         }
     }
 }

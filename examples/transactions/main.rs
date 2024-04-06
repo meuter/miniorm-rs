@@ -92,7 +92,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     println!("Inserting...");
-    let id = store.create(&tx).await?;
+    let tx = store.create(tx).await?;
+    let id = tx.id();
+    let tx = tx.into_inner();
 
     println!("Retrieveing by id...");
     let mut fetched = store.read(id).await?;

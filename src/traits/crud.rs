@@ -1,10 +1,12 @@
 use async_trait::async_trait;
 
+use crate::WithId;
+
 /// \[C\]reate CRUD operation
 #[async_trait]
 pub trait Create<E> {
     /// Create an object in the database and returns its `id`.
-    async fn create(&self, entity: &E) -> sqlx::Result<i64>;
+    async fn create(&self, entity: E) -> sqlx::Result<WithId<E>>;
 }
 
 /// \[R\]ead CRUD operation
