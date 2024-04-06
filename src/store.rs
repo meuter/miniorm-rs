@@ -112,20 +112,21 @@ mod mysql {
 impl<DB, E> Read<E> for Store<DB, E>
 where
     DB: Database,
-    E: Unpin + Send + Sync,
+    E: Unpin + Send + Sync + Send,
     E: for<'r> FromRow<'r, <DB as Database>::Row> + Schema<DB>,
+    for<'c> &'c str: ColumnIndex<<DB as Database>::Row>,
     for<'c> &'c mut <DB as sqlx::Database>::Connection: Executor<'c, Database = DB>,
     for<'c> <DB as HasArguments<'c>>::Arguments: IntoArguments<'c, DB>,
-    for<'c> i64: Type<DB> + Encode<'c, DB>,
+    for<'c> i64: Type<DB> + Decode<'c, DB> + Encode<'c, DB>,
 {
-    async fn read(&self, id: i64) -> sqlx::Result<E> {
+    async fn read(&self, id: i64) -> sqlx::Result<WithId<E>> {
         sqlx::query_as(E::MINIORM_READ)
             .bind(id)
             .fetch_one(&self.db)
             .await
     }
 
-    async fn list(&self) -> sqlx::Result<Vec<E>> {
+    async fn list(&self) -> sqlx::Result<Vec<WithId<E>>> {
         sqlx::query_as(E::MINIORM_LIST).fetch_all(&self.db).await
     }
 }

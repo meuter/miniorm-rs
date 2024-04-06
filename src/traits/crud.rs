@@ -13,10 +13,10 @@ pub trait Create<E> {
 #[async_trait]
 pub trait Read<E> {
     /// Reads and returns an object from the database
-    async fn read(&self, id: i64) -> sqlx::Result<E>;
+    async fn read(&self, id: i64) -> sqlx::Result<WithId<E>>;
 
     /// Lists and return all object from the database
-    async fn list(&self) -> sqlx::Result<Vec<E>>;
+    async fn list(&self) -> sqlx::Result<Vec<WithId<E>>>;
 }
 
 /// \[C\]reate CRUD operation
