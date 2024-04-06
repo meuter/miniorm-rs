@@ -11,6 +11,7 @@ homepage = "https://github.com/meuter/miniorm-rs"
 repository = "https://github.com/meuter/miniorm-rs"
 
 [dependencies]
+serde = { version = "1.0.197", optional = true }
 sqlx = { version = "0.7.4" }
 miniorm-macros = { version = "0.4.0", path = "macros" }
 async-trait = "0.1.79"
@@ -20,7 +21,8 @@ members = ["macros"]
 
 [features]
 default = ["postgres"]
-full = ["postgres", "sqlite", "mysql"]
+full = ["postgres", "sqlite", "mysql", "serde"]
+serde = ["dep:serde"]
 postgres = ["sqlx/postgres"]
 sqlite = ["sqlx/sqlite"]
 mysql = ["sqlx/mysql"]
