@@ -94,6 +94,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 ```
+<table>
+    <tr>
+        <td style="background-color:green;color:black;">
+        This example requires the
+        <span style="color:blue">sqlite</span> and 
+        </td>
+    </tr>
+</table>
 
 # But wait, there's more!
 
@@ -155,4 +163,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 ```
+<table>
+    <tr>
+        <td style="background-color:green;color:black;">
+        This example requires the
+        <span style="color:blue">sqlite</span> and 
+        <span style="color:blue">axum</span> feature flags.
+        </td>
+    </tr>
+</table>
 

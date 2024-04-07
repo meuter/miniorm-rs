@@ -2,6 +2,15 @@ use axum::Router;
 
 /// Trait representing a type that can be turned into
 /// an [`Router`].
+///
+/// <table>
+///     <tr>
+///         <td style="background-color:green;color:black;">
+///         Requires the <span style="color:blue">axum</span>
+///         feature flag.
+///         </td>
+///     </tr>
+/// </table>
 pub trait IntoAxumRouter {
     /// Converts the store into an [`Router`]
     /// that will handle all standard REST request to realize CRUD operations
