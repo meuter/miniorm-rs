@@ -65,6 +65,7 @@ impl SchemaArgs {
             db.placeholder(1)
         );
         let list = format!("SELECT {cols}, id FROM {table} ORDER BY id");
+        let count = format!("SELECT COUNT(id) AS count FROM {table}");
 
         // Update
         let update = {
@@ -89,6 +90,7 @@ impl SchemaArgs {
                 const MINIORM_CREATE: &'static str = #create;
                 const MINIORM_READ: &'static str = #read;
                 const MINIORM_LIST: &'static str = #list;
+                const MINIORM_COUNT: &'static str = #count;
                 const MINIORM_UPDATE: &'static str = #update;
                 const MINIORM_DELETE: &'static str = #delete;
                 const MINIORM_DELETE_ALL: &'static str = #delete_all;

@@ -28,11 +28,11 @@ macro_rules! test_rest {
         async fn get_ok() {
             let store = get_store_with_sample_data().await.unwrap();
             let server = TestServer::new(store.clone().into_axum_router()).unwrap();
-            // let before = store.count().await.unwrap();
+            let before = store.count().await.unwrap();
             let actual = server.get("/3").await.json::<WithId<Todo>>();
-            // let after = store.count().await.unwrap();
+            let after = store.count().await.unwrap();
             let expected = store.read(3).await.unwrap();
-            // assert_eq!(before, after);
+            assert_eq!(before, after);
             assert_eq!(actual, expected);
         }
 
@@ -51,11 +51,11 @@ macro_rules! test_rest {
         async fn list() {
             let store = get_store_with_sample_data().await.unwrap();
             let server = TestServer::new(store.clone().into_axum_router()).unwrap();
-            // let before = store.count().await.unwrap();
+            let before = store.count().await.unwrap();
             let actual = server.get("/").await.json::<Vec<WithId<Todo>>>();
-            // let after = store.count().await.unwrap();
+            let after = store.count().await.unwrap();
             let expected = store.list().await.unwrap();
-            // assert_eq!(before, after);
+            assert_eq!(before, after);
             assert_eq!(actual, expected);
         }
 
@@ -65,15 +65,15 @@ macro_rules! test_rest {
         async fn post() {
             let store = get_store_with_sample_data().await.unwrap();
             let server = TestServer::new(store.clone().into_axum_router()).unwrap();
-            // let before = store.count().await.unwrap();
+            let before = store.count().await.unwrap();
             let actual = server
                 .post("/")
                 .json(&Todo::new("new one"))
                 .await
                 .json::<WithId<Todo>>();
-            // let after = store.count().await.unwrap();
+            let after = store.count().await.unwrap();
             let expected = store.read(actual.id()).await.unwrap();
-            // assert_eq!(before + 1, after);
+            assert_eq!(before + 1, after);
             assert_eq!(actual, expected);
         }
 
@@ -83,7 +83,7 @@ macro_rules! test_rest {
         async fn put() {
             let store = get_store_with_sample_data().await.unwrap();
             let server = TestServer::new(store.clone().into_axum_router()).unwrap();
-            // let before = store.count().await.unwrap();
+            let before = store.count().await.unwrap();
             let mut expected = store.read(3).await.unwrap();
             assert!(!expected.is_done());
             expected.mark_as_done();
@@ -92,9 +92,9 @@ macro_rules! test_rest {
                 .json(expected.inner())
                 .await
                 .json::<WithId<Todo>>();
-            // let after = store.count().await.unwrap();
+            let after = store.count().await.unwrap();
             let expected = store.read(actual.id()).await.unwrap();
-            // assert_eq!(before, after);
+            assert_eq!(before, after);
             assert_eq!(actual, expected);
         }
 
@@ -104,14 +104,14 @@ macro_rules! test_rest {
         async fn put_with_id() {
             let store = get_store_with_sample_data().await.unwrap();
             let server = TestServer::new(store.clone().into_axum_router()).unwrap();
-            // let before = store.count().await.unwrap();
+            let before = store.count().await.unwrap();
             let mut expected = store.read(3).await.unwrap();
             assert!(!expected.is_done());
             expected.mark_as_done();
             let actual = server.put("/").json(&expected).await.json::<WithId<Todo>>();
-            // let after = store.count().await.unwrap();
+            let after = store.count().await.unwrap();
             let expected = store.read(actual.id()).await.unwrap();
-            // assert_eq!(before, after);
+            assert_eq!(before, after);
             assert_eq!(actual, expected);
         }
 
@@ -121,11 +121,11 @@ macro_rules! test_rest {
         async fn delete_ok() {
             let store = get_store_with_sample_data().await.unwrap();
             let server = TestServer::new(store.clone().into_axum_router()).unwrap();
-            // let before = store.count().await.unwrap();
+            let before = store.count().await.unwrap();
             server.delete("/3").await.assert_status_ok();
-            // let after = store.count().await.unwrap();
+            let after = store.count().await.unwrap();
             assert!(matches!(store.read(3).await, Err(sqlx::Error::RowNotFound)));
-            // assert_eq!(before, after + 1);
+            assert_eq!(before, after + 1);
         }
 
         #[cfg_attr(not(feature = "integration_tests"), ignore)]
@@ -146,15 +146,15 @@ macro_rules! test_rest {
         async fn delete_all() {
             let store = get_store_with_sample_data().await.unwrap();
             let server = TestServer::new(store.clone().into_axum_router()).unwrap();
-            // let before = store.count().await.unwrap();
+            let before = store.count().await.unwrap();
             server.delete("/").await.assert_status_ok();
-            // let after = store.count().await.unwrap();
-            // assert_eq!(before, 4);
+            let after = store.count().await.unwrap();
+            assert_eq!(before, 4);
+            assert_eq!(after, 0);
             assert!(matches!(store.read(1).await, Err(sqlx::Error::RowNotFound)));
             assert!(matches!(store.read(2).await, Err(sqlx::Error::RowNotFound)));
             assert!(matches!(store.read(3).await, Err(sqlx::Error::RowNotFound)));
             assert!(matches!(store.read(4).await, Err(sqlx::Error::RowNotFound)));
-            // assert_eq!(after, 0);
         }
     };
 }
