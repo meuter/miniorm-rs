@@ -1,14 +1,25 @@
 mod common;
 
+use common::Todo;
+use miniorm::prelude::*;
+use serial_test::serial;
+use std::error::Error;
+
 #[macro_export]
-macro_rules! test_todo_crud {
-    ($new_store: expr) => {
+macro_rules! test_crud {
+    ($db: block) => {
+        async fn get_clean_store() -> Result<impl Crud<Todo>, Box<dyn Error>> {
+            let pool = $db;
+            let store = Store::new(pool);
+            store.recreate_table().await?;
+            Ok(store)
+        }
+
         #[cfg_attr(not(feature = "integration_tests"), ignore)]
         #[serial]
         #[tokio::test]
         async fn create() {
-            #[allow(unused_mut)]
-            let mut store = $new_store;
+            let store = get_clean_store().await.unwrap();
             let todo = store.create(Todo::new("checkout miniorm")).await.unwrap();
             assert_eq!(todo.id(), 1);
             assert_eq!(todo.description(), "checkout miniorm");
@@ -19,18 +30,15 @@ macro_rules! test_todo_crud {
         #[serial]
         #[tokio::test]
         async fn read() {
-            #[allow(unused_mut)]
-            let mut store = $new_store;
+            let store = get_clean_store().await.unwrap();
             let todo = store.create(Todo::new("checkout miniorm")).await.unwrap();
             assert_eq!(todo, store.read(todo.id()).await.unwrap());
         }
 
-        #[cfg_attr(not(feature = "integration_tests"), ignore)]
         #[serial]
         #[tokio::test]
         async fn list() {
-            #[allow(unused_mut)]
-            let mut store = $new_store;
+            let store = get_clean_store().await.unwrap();
             let todo1 = store.create(Todo::new("todo1")).await.unwrap();
             let todo2 = store.create(Todo::new("todo2")).await.unwrap();
             let todo3 = store.create(Todo::new("todo3")).await.unwrap();
@@ -43,8 +51,7 @@ macro_rules! test_todo_crud {
         #[serial]
         #[tokio::test]
         async fn update() {
-            #[allow(unused_mut)]
-            let mut store = $new_store;
+            let store = get_clean_store().await.unwrap();
             let mut todo = store.create(Todo::new("checkout miniorm")).await.unwrap();
             let id = todo.id();
 
@@ -61,8 +68,7 @@ macro_rules! test_todo_crud {
         #[serial]
         #[tokio::test]
         async fn delete() {
-            #[allow(unused_mut)]
-            let mut store = $new_store;
+            let store = get_clean_store().await.unwrap();
             let todo = store.create(Todo::new("checkout miniorm")).await.unwrap();
 
             store.delete(todo.id()).await.unwrap();
@@ -82,8 +88,7 @@ macro_rules! test_todo_crud {
         #[serial]
         #[tokio::test]
         async fn delete_all() {
-            #[allow(unused_mut)]
-            let mut store = $new_store;
+            let store = get_clean_store().await.unwrap();
             let todo1 = store.create(Todo::new("todo1")).await.unwrap();
             let todo2 = store.create(Todo::new("todo2")).await.unwrap();
             let todo3 = store.create(Todo::new("todo3")).await.unwrap();
@@ -99,60 +104,34 @@ macro_rules! test_todo_crud {
 }
 
 mod test_crud {
+    use super::*;
 
     mod test_mysql {
-        use crate::common::Todo;
-        use miniorm::prelude::*;
-        use serial_test::serial;
-        use sqlx::{MySql, MySqlPool};
-        use std::error::Error;
+        use super::*;
+        use sqlx::MySqlPool;
 
-        pub async fn get_store() -> Result<Store<MySql, Todo>, Box<dyn Error>> {
+        test_crud!({
             dotenv::dotenv()?;
             let url = std::env::var("MYSQL_URL").expect("missing MYSQL_URL env");
-            let db = MySqlPool::connect(&url).await?;
-            let store = miniorm::Store::new(db);
-            store.recreate_table().await?;
-            Ok(store)
-        }
-
-        test_todo_crud!(get_store().await.unwrap());
+            MySqlPool::connect(&url).await?
+        });
     }
 
     mod test_pgstore {
-        use crate::common::Todo;
-        use miniorm::prelude::*;
-        use serial_test::serial;
-        use sqlx::{PgPool, Postgres};
-        use std::error::Error;
+        use super::*;
+        use sqlx::PgPool;
 
-        pub async fn get_store() -> Result<Store<Postgres, Todo>, Box<dyn Error>> {
+        test_crud!({
             dotenv::dotenv()?;
             let url = std::env::var("POSTGRES_URL").expect("missing POSTGRES_URL env");
-            let db = PgPool::connect(&url).await?;
-            let store = miniorm::Store::new(db);
-            store.recreate_table().await?;
-            Ok(store)
-        }
-
-        test_todo_crud!(get_store().await.unwrap());
+            PgPool::connect(&url).await?
+        });
     }
 
     mod test_sqlitestore {
-        use crate::common::Todo;
-        use miniorm::prelude::*;
-        use serial_test::serial;
-        use sqlx::{Sqlite, SqlitePool};
-        use std::error::Error;
+        use super::*;
+        use sqlx::SqlitePool;
 
-        async fn get_store() -> Result<Store<Sqlite, Todo>, Box<dyn Error>> {
-            let url = ":memory:";
-            let connection = SqlitePool::connect(url).await?;
-            let store = Store::new(connection);
-            store.recreate_table().await?;
-            Ok(store)
-        }
-
-        test_todo_crud!(get_store().await.unwrap());
+        test_crud!({ SqlitePool::connect(":memory:").await? });
     }
 }
