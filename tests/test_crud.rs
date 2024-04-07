@@ -51,6 +51,23 @@ macro_rules! test_crud {
         #[cfg_attr(not(feature = "integration_tests"), ignore)]
         #[serial]
         #[tokio::test]
+        async fn count() {
+            let store = get_clean_store().await.unwrap();
+            assert_eq!(store.count().await.unwrap(), 0);
+
+            store.create(Todo::new("todo1")).await.unwrap();
+            assert_eq!(store.count().await.unwrap(), 1);
+
+            store.create(Todo::new("todo2")).await.unwrap();
+            assert_eq!(store.count().await.unwrap(), 2);
+
+            store.create(Todo::new("todo3")).await.unwrap();
+            assert_eq!(store.count().await.unwrap(), 3);
+        }
+
+        #[cfg_attr(not(feature = "integration_tests"), ignore)]
+        #[serial]
+        #[tokio::test]
         async fn update() {
             let store = get_clean_store().await.unwrap();
             let mut todo = store.create(Todo::new("checkout miniorm")).await.unwrap();

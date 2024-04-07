@@ -108,6 +108,7 @@ mod mysql {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // Read
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+
 #[async_trait]
 impl<DB, E> Read<E> for Store<DB, E>
 where
@@ -128,6 +129,16 @@ where
 
     async fn list(&self) -> sqlx::Result<Vec<WithId<E>>> {
         sqlx::query_as(E::MINIORM_LIST).fetch_all(&self.db).await
+    }
+
+    async fn count(&self) -> sqlx::Result<u64> {
+        #[derive(FromRow)]
+        struct CountResult {
+            count: i64,
+        }
+
+        let result: CountResult = sqlx::query_as(E::MINIORM_COUNT).fetch_one(&self.db).await?;
+        Ok(result.count as u64)
     }
 }
 

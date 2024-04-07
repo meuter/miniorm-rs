@@ -17,6 +17,9 @@ pub trait Read<E> {
 
     /// Lists and return all object from the database
     async fn list(&self) -> sqlx::Result<Vec<WithId<E>>>;
+
+    /// Count and return the number of object in the database
+    async fn count(&self) -> sqlx::Result<u64>;
 }
 
 /// \[C\]reate CRUD operation

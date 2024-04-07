@@ -29,6 +29,8 @@ use sqlx::Database;
 ///         SELECT selection, done FROM todo WHERE id=$1"#;
 ///     const MINIORM_LIST: &'static str = r#"
 ///         SELECT selection, done FROM todo ORDER BY id"#;
+///     const MINIORM_COUNT: &'static str = r#"
+///         SELECT COUNT(id) AS count FROM todo"#;
 ///     const MINIORM_UPDATE: &'static str = r#"
 ///         UPDATE todo SET selection=$1, done=$2 WHERE id=$2"#;
 ///     const MINIORM_DELETE: &'static str = r#"
@@ -63,6 +65,9 @@ pub trait Schema<DB: Database> {
 
     /// SQL query to list all rows ordered by id
     const MINIORM_LIST: &'static str;
+
+    /// SQL query to count the number of rows
+    const MINIORM_COUNT: &'static str;
 
     /// SQL query to update a row by id
     const MINIORM_UPDATE: &'static str;
