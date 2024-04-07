@@ -106,7 +106,7 @@ macro_rules! test_crud {
 mod test_crud {
     use super::*;
 
-    mod test_mysql {
+    mod mysql {
         use super::*;
         use sqlx::MySqlPool;
 
@@ -117,7 +117,7 @@ mod test_crud {
         });
     }
 
-    mod test_pgstore {
+    mod pgstore {
         use super::*;
         use sqlx::PgPool;
 
@@ -128,7 +128,7 @@ mod test_crud {
         });
     }
 
-    mod test_sqlitestore {
+    mod sqlitestore {
         use super::*;
         use sqlx::SqlitePool;
 
