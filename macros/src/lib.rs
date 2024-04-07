@@ -3,8 +3,8 @@
     rustdoc::missing_crate_level_docs,
     rustdoc::broken_intra_doc_links
 )]
-#![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../README.md"))]
-
+//! Helper crate for `miniorm` providing a device macro to easily
+//! implement the `Schema` and `Bind` trait.
 mod column;
 mod database;
 mod entity;
@@ -21,7 +21,10 @@ use syn::DeriveInput;
 /// The schema for the column can provided using the `column` directive:
 ///
 /// ```rust
-/// #[derive(Debug, Clone, Eq, PartialEq, FromRow, Entity, Serialize, Deserialize)]
+/// use miniorm::prelude::*;
+/// use sqlx::FromRow;
+///
+/// #[derive(Debug, Clone, Eq, PartialEq, FromRow, Entity)]
 /// struct Todo {
 ///     #[column(TEXT NOT NULL)]
 ///     description: String,
@@ -39,7 +42,10 @@ use syn::DeriveInput;
 /// only be derived for `postgres`:
 ///
 /// ```rust
-/// #[derive(Debug, Clone, Eq, PartialEq, FromRow, Entity, Serialize, Deserialize)]
+/// use miniorm::prelude::*;
+/// use sqlx::FromRow;
+///
+/// #[derive(Debug, Clone, Eq, PartialEq, FromRow, Entity)]
 /// struct Todo {
 ///     #[postgres(TEXT NOT NULL)]
 ///     description: String,
@@ -54,7 +60,10 @@ use syn::DeriveInput;
 /// - `json`
 ///
 /// ```rust
-/// #[derive(Debug, Clone, Eq, PartialEq, FromRow, Entity, Serialize, Deserialize)]
+/// use miniorm::prelude::*;
+/// use sqlx::FromRow;
+///
+/// #[derive(Debug, Clone, Eq, PartialEq, FromRow, Entity)]
 /// struct Todo {
 ///     #[postgres(TEXT NOT NULL)]
 ///     description: String,
