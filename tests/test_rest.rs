@@ -10,7 +10,6 @@ use std::error::Error;
 #[macro_export]
 macro_rules! test_rest {
     ($db: block) => {
-        #[cfg(feature = "axum")]
         async fn get_store_with_sample_data(
         ) -> Result<impl Clone + Crud<Todo> + IntoAxumRouter, Box<dyn Error>> {
             let pool = $db;
@@ -23,7 +22,7 @@ macro_rules! test_rest {
             Ok(store)
         }
 
-        #[cfg(feature = "axum")]
+        #[cfg_attr(not(feature = "integration_tests"), ignore)]
         #[serial]
         #[tokio::test]
         async fn get_ok() {
@@ -37,7 +36,7 @@ macro_rules! test_rest {
             assert_eq!(actual, expected);
         }
 
-        #[cfg(feature = "axum")]
+        #[cfg_attr(not(feature = "integration_tests"), ignore)]
         #[serial]
         #[tokio::test]
         async fn get_not_found() {
@@ -46,7 +45,7 @@ macro_rules! test_rest {
             server.get("/23").await.assert_status(StatusCode::NOT_FOUND);
         }
 
-        #[cfg(feature = "axum")]
+        #[cfg_attr(not(feature = "integration_tests"), ignore)]
         #[serial]
         #[tokio::test]
         async fn list() {
@@ -60,7 +59,7 @@ macro_rules! test_rest {
             assert_eq!(actual, expected);
         }
 
-        #[cfg(feature = "axum")]
+        #[cfg_attr(not(feature = "integration_tests"), ignore)]
         #[serial]
         #[tokio::test]
         async fn post() {
@@ -78,7 +77,7 @@ macro_rules! test_rest {
             assert_eq!(actual, expected);
         }
 
-        #[cfg(feature = "axum")]
+        #[cfg_attr(not(feature = "integration_tests"), ignore)]
         #[serial]
         #[tokio::test]
         async fn put() {
@@ -99,7 +98,7 @@ macro_rules! test_rest {
             assert_eq!(actual, expected);
         }
 
-        #[cfg(feature = "axum")]
+        #[cfg_attr(not(feature = "integration_tests"), ignore)]
         #[serial]
         #[tokio::test]
         async fn put_with_id() {
@@ -116,7 +115,7 @@ macro_rules! test_rest {
             assert_eq!(actual, expected);
         }
 
-        #[cfg(feature = "axum")]
+        #[cfg_attr(not(feature = "integration_tests"), ignore)]
         #[serial]
         #[tokio::test]
         async fn delete_ok() {
@@ -129,7 +128,7 @@ macro_rules! test_rest {
             // assert_eq!(before, after + 1);
         }
 
-        #[cfg(feature = "axum")]
+        #[cfg_attr(not(feature = "integration_tests"), ignore)]
         #[serial]
         #[tokio::test]
         async fn delete_not_found() {
@@ -141,7 +140,7 @@ macro_rules! test_rest {
                 .assert_status(StatusCode::NOT_FOUND);
         }
 
-        #[cfg(feature = "axum")]
+        #[cfg_attr(not(feature = "integration_tests"), ignore)]
         #[serial]
         #[tokio::test]
         async fn delete_all() {
@@ -163,6 +162,7 @@ macro_rules! test_rest {
 mod test_rest {
     use super::*;
 
+    #[cfg(feature = "mysql")]
     mod mysql {
         use super::*;
         use sqlx::MySqlPool;
@@ -174,7 +174,8 @@ mod test_rest {
         });
     }
 
-    mod pgstore {
+    #[cfg(feature = "postgres")]
+    mod postgres {
         use super::*;
         use sqlx::PgPool;
 
@@ -185,7 +186,8 @@ mod test_rest {
         });
     }
 
-    mod sqlitestore {
+    #[cfg(feature = "sqlite")]
+    mod sqlite {
         use super::*;
         use sqlx::SqlitePool;
 
