@@ -27,4 +27,6 @@ jobs:
         run: cargo build --workspace --no-default-features -F sqlite
       - name: Build only with MySql
         run: cargo build --workspace --no-default-features -F mysql
+      - name: Build only with Axum
+        run: cargo build --workspace --no-default-features -F axum
 

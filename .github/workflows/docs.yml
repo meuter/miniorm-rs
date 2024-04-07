@@ -7,7 +7,7 @@ env:
   RUSTFLAGS: "-Dwarnings" # Make sure CI fails on all warnings, including Clippy lints
 
 jobs:
-  clippy_check:
+  documentation:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
