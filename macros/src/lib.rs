@@ -18,6 +18,9 @@ use strum::IntoEnumIterator;
 use syn::DeriveInput;
 
 /// Derive macro to automatically derive the `Schema` and `Bind` traits.
+///
+/// # The `column` directive
+///
 /// The schema for the column can provided using the `column` directive:
 ///
 /// ```rust
@@ -35,7 +38,16 @@ use syn::DeriveInput;
 /// ```
 ///
 /// in which case the `Schema` and `Bind` trait will be derived for all
-/// supported database types. This requires the `full` feature of `miniorm`.
+/// supported database types.
+/// <table>
+///     <tr>
+///         <td style="background-color:green;color:black;">
+///         Requires the <span style="color:blue">full</span> feature flag.
+///         </td>
+///     </tr>
+/// </table>
+///
+/// # The backend-specific directive
 ///
 /// If only a specific backend is necessary, one of the dedicated backend-specific
 /// directive should be used instead. For instance, if `Schema` and `Bind` should
@@ -54,6 +66,16 @@ use syn::DeriveInput;
 ///     done: bool,
 /// }
 /// ```
+/// <table>
+///     <tr>
+///         <td style="background-color:green;color:black;">
+///         This example requires the <span style="color:blue">postgres</span> feature flag.
+///         </td>
+///     </tr>
+/// </table>
+///
+/// # The `sqlx` directive
+///
 /// At the moment, only the following `sqlx` directives for `FromRow` are supported:
 /// - `skip`
 /// - `rename`
