@@ -22,5 +22,5 @@ strum = { version = "0.26.2", features = ["derive"] }
 syn = "2.0.52"
 
 [dev-dependencies]
-miniorm = { path = "..", features = ["sqlite", "postgres", "mysql"] }
-sqlx = { version = "0.7.4" }
+miniorm = { path = "..", features = ["full"] }
+sqlx = { version = "0.7.4", features = ["sqlite", "postgres"] }
