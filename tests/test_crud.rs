@@ -35,6 +35,7 @@ macro_rules! test_crud {
             assert_eq!(todo, store.read(todo.id()).await.unwrap());
         }
 
+        #[cfg_attr(not(feature = "integration_tests"), ignore)]
         #[serial]
         #[tokio::test]
         async fn list() {
@@ -106,6 +107,7 @@ macro_rules! test_crud {
 mod test_crud {
     use super::*;
 
+    #[cfg(feature = "mysql")]
     mod mysql {
         use super::*;
         use sqlx::MySqlPool;
@@ -117,7 +119,8 @@ mod test_crud {
         });
     }
 
-    mod pgstore {
+    #[cfg(feature = "postgres")]
+    mod postgres {
         use super::*;
         use sqlx::PgPool;
 
@@ -128,7 +131,8 @@ mod test_crud {
         });
     }
 
-    mod sqlitestore {
+    #[cfg(feature = "sqlite")]
+    mod sqlite {
         use super::*;
         use sqlx::SqlitePool;
 
