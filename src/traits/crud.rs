@@ -22,7 +22,7 @@ pub trait Read<E> {
     async fn count(&self) -> sqlx::Result<u64>;
 }
 
-/// \[C\]reate CRUD operation
+/// \[U\]pdate CRUD operation
 #[async_trait]
 pub trait Update<E> {
     /// Update an object in the database and returns its `id`.
