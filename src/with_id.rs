@@ -10,14 +10,14 @@ use std::ops::{Deref, DerefMut};
 /// type implements these traits:
 /// - [`Debug`] and [`Clone`]
 /// - [`Eq`] and [`PartialEq`]
-pub struct WithId<E> {
+pub struct WithId<E, I> {
     /// the wrapped entity
     inner: E,
     /// the `id` used to identify the `inner` entity
-    id: i64,
+    id: I,
 }
 
-impl<E> WithId<E> {
+impl<E, I> WithId<E, I> {
     /// Creates a wrapped entity with the provided id.
     ///
     /// # Arguments
@@ -31,7 +31,7 @@ impl<E> WithId<E> {
     /// assert_eq!(with_id.id(), 1);
     /// assert_eq!(with_id.into_inner(), "miniorm");
     /// ```
-    pub fn new(inner: E, id: i64) -> Self {
+    pub fn new(inner: E, id: I) -> Self {
         WithId { inner, id }
     }
 
@@ -74,7 +74,36 @@ impl<E> WithId<E> {
         &mut self.inner
     }
 
-    /// Extracts the id and discards the entity
+    /// Returns a reference to the id of the entity
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let with_id = miniorm::WithId::new("miniorm", 10);
+    /// assert_eq!(*with_id.id_ref(), 10);
+    ///
+    /// ```
+    pub fn id_ref(&self) -> &I {
+        &self.id
+    }
+
+    /// Returns a mutable reference to the id of the entity
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let mut with_id = miniorm::WithId::new("miniorm", 10);
+    /// *with_id.id_ref_mut() = 11;
+    /// assert_eq!(*with_id.id_ref(), 11);
+    ///
+    /// ```
+    pub fn id_ref_mut(&mut self) -> &mut I {
+        &mut self.id
+    }
+}
+
+impl<E, I: Clone> WithId<E, I> {
+    /// Returns a copy of the id of the entity
     ///
     /// # Example
     ///
@@ -83,12 +112,12 @@ impl<E> WithId<E> {
     /// assert_eq!(with_id.id(), 10);
     ///
     /// ```
-    pub fn id(&self) -> i64 {
-        self.id
+    pub fn id(&self) -> I {
+        self.id.clone()
     }
 }
 
-impl<E> Deref for WithId<E> {
+impl<E, I> Deref for WithId<E, I> {
     type Target = E;
 
     fn deref(&self) -> &Self::Target {
@@ -96,19 +125,18 @@ impl<E> Deref for WithId<E> {
     }
 }
 
-impl<E> DerefMut for WithId<E> {
+impl<E, I> DerefMut for WithId<E, I> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
     }
 }
 
-impl<'a, R: Row, E> FromRow<'a, R> for WithId<E>
+impl<'a, R: Row, E, I> FromRow<'a, R> for WithId<E, I>
 where
     R: Row,
     E: FromRow<'a, R>,
     &'a str: ColumnIndex<R>,
-    i64: Decode<'a, R::Database>,
-    i64: Type<R::Database>,
+    I: Decode<'a, R::Database> + Type<R::Database>,
 {
     fn from_row(row: &'a R) -> ::sqlx::Result<Self> {
         let inner = E::from_row(row)?;
@@ -117,26 +145,29 @@ where
     }
 }
 
-impl<E: Clone> Clone for WithId<E> {
+impl<E: Clone, I: Clone> Clone for WithId<E, I> {
     fn clone(&self) -> Self {
         Self {
-            id: self.id,
+            id: self.id.clone(),
             inner: self.inner.clone(),
         }
     }
 }
 
-impl<E: PartialEq> PartialEq for WithId<E> {
+impl<E: PartialEq, I: PartialEq> PartialEq for WithId<E, I> {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id && self.inner == other.inner
     }
 }
 
-impl<E: Eq> Eq for WithId<E> {}
+impl<E: Eq, I: Eq> Eq for WithId<E, I> {}
 
-impl<E: std::fmt::Debug> std::fmt::Debug for WithId<E> {
+impl<E: std::fmt::Debug, I: std::fmt::Debug> std::fmt::Debug for WithId<E, I> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("WithId").field("id", &self.id).field("inner", &self.inner).finish()
+        f.debug_struct("WithId")
+            .field("id", &self.id)
+            .field("inner", &self.inner)
+            .finish()
     }
 }
 
@@ -156,18 +187,22 @@ mod with_serde {
         Id,
     }
 
-    pub(crate) struct WithIdVisitor<E> {
+    pub(crate) struct WithIdVisitor<E, I> {
         inner: PhantomData<E>,
+        id: PhantomData<I>,
     }
 
-    impl<E> WithIdVisitor<E> {
+    impl<E, I> WithIdVisitor<E, I> {
         pub(crate) fn new() -> Self {
-            WithIdVisitor { inner: PhantomData }
+            WithIdVisitor {
+                inner: PhantomData,
+                id: PhantomData,
+            }
         }
     }
 
-    impl<'de, E: Deserialize<'de>> Visitor<'de> for WithIdVisitor<E> {
-        type Value = WithId<E>;
+    impl<'de, E: Deserialize<'de>, I: Deserialize<'de>> Visitor<'de> for WithIdVisitor<E, I> {
+        type Value = WithId<E, I>;
 
         fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
             formatter.write_str("struct WithId")
@@ -212,7 +247,7 @@ mod with_serde {
 }
 
 #[cfg(feature = "serde")]
-impl<E: serde::Serialize> serde::Serialize for WithId<E> {
+impl<E: serde::Serialize, I: serde::Serialize> serde::Serialize for WithId<E, I> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: ::serde::ser::Serializer,
@@ -226,13 +261,13 @@ impl<E: serde::Serialize> serde::Serialize for WithId<E> {
 }
 
 #[cfg(feature = "serde")]
-impl<'de, E: serde::Deserialize<'de>> serde::Deserialize<'de> for WithId<E> {
+impl<'de, E: serde::Deserialize<'de>, I: serde::Deserialize<'de>> serde::Deserialize<'de> for WithId<E, I> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
         const FIELDS: &[&str] = &["inner", "id"];
-        deserializer.deserialize_struct("WithId", FIELDS, with_serde::WithIdVisitor::<E>::new())
+        deserializer.deserialize_struct("WithId", FIELDS, with_serde::WithIdVisitor::<E, I>::new())
     }
 }
 
@@ -275,8 +310,14 @@ mod test {
                 x: u32,
             }
 
-            let with_id = WithId::new(Foo { x: 420 }, 69);
-            assert_eq!(serde_json::to_string(&with_id).unwrap(), r#"{"id":69,"inner":{"x":420}}"#);
+            #[derive(Serialize)]
+            struct Id(u32);
+
+            let with_id = WithId::new(Foo { x: 420 }, Id(69));
+            assert_eq!(
+                serde_json::to_string(&with_id).unwrap(),
+                r#"{"id":69,"inner":{"x":420}}"#
+            );
         }
 
         #[test]
@@ -284,9 +325,12 @@ mod test {
             #[derive(Deserialize)]
             struct Foo(u32);
 
-            let with_id: WithId<Foo> = serde_json::from_str(r#"{"id":69,"inner":420}"#).unwrap();
+            #[derive(Deserialize)]
+            struct Id(i64);
+
+            let with_id: WithId<Foo, Id> = serde_json::from_str(r#"{"id":69,"inner":420}"#).unwrap();
             assert_eq!(with_id.inner.0, 420);
-            assert_eq!(with_id.id, 69);
+            assert_eq!(with_id.id.0, 69);
         }
     }
 }

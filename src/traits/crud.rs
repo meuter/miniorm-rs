@@ -6,17 +6,17 @@ use crate::WithId;
 #[async_trait]
 pub trait Create<E> {
     /// Create an object in the database and returns its `id`.
-    async fn create(&self, entity: E) -> sqlx::Result<WithId<E>>;
+    async fn create(&self, entity: E) -> sqlx::Result<WithId<E, i64>>;
 }
 
 /// \[R\]ead CRUD operation
 #[async_trait]
 pub trait Read<E> {
     /// Reads and returns an object from the database
-    async fn read(&self, id: i64) -> sqlx::Result<WithId<E>>;
+    async fn read(&self, id: i64) -> sqlx::Result<WithId<E, i64>>;
 
     /// Lists and return all object from the database
-    async fn list(&self) -> sqlx::Result<Vec<WithId<E>>>;
+    async fn list(&self) -> sqlx::Result<Vec<WithId<E, i64>>>;
 
     /// Count and return the number of object in the database
     async fn count(&self) -> sqlx::Result<u64>;
@@ -26,7 +26,7 @@ pub trait Read<E> {
 #[async_trait]
 pub trait Update<E> {
     /// Update an object in the database and returns its `id`.
-    async fn update(&self, entity: WithId<E>) -> sqlx::Result<WithId<E>>;
+    async fn update(&self, entity: WithId<E, i64>) -> sqlx::Result<WithId<E, i64>>;
 }
 
 /// \[D\]elete CRUD operation

@@ -10,8 +10,7 @@ use std::error::Error;
 #[macro_export]
 macro_rules! test_rest {
     ($db: block) => {
-        async fn get_store_with_sample_data(
-        ) -> Result<impl Clone + Crud<Todo> + IntoAxumRouter, Box<dyn Error>> {
+        async fn get_store_with_sample_data() -> Result<impl Clone + Crud<Todo> + IntoAxumRouter, Box<dyn Error>> {
             let pool = $db;
             let store = Store::new(pool);
             store.recreate_table().await?;
@@ -29,7 +28,7 @@ macro_rules! test_rest {
             let store = get_store_with_sample_data().await.unwrap();
             let server = TestServer::new(store.clone().into_axum_router()).unwrap();
             let before = store.count().await.unwrap();
-            let actual = server.get("/3").await.json::<WithId<Todo>>();
+            let actual = server.get("/3").await.json::<WithId<Todo, i64>>();
             let after = store.count().await.unwrap();
             let expected = store.read(3).await.unwrap();
             assert_eq!(before, after);
@@ -52,7 +51,7 @@ macro_rules! test_rest {
             let store = get_store_with_sample_data().await.unwrap();
             let server = TestServer::new(store.clone().into_axum_router()).unwrap();
             let before = store.count().await.unwrap();
-            let actual = server.get("/").await.json::<Vec<WithId<Todo>>>();
+            let actual = server.get("/").await.json::<Vec<WithId<Todo, i64>>>();
             let after = store.count().await.unwrap();
             let expected = store.list().await.unwrap();
             assert_eq!(before, after);
@@ -70,7 +69,7 @@ macro_rules! test_rest {
                 .post("/")
                 .json(&Todo::new("new one"))
                 .await
-                .json::<WithId<Todo>>();
+                .json::<WithId<Todo, i64>>();
             let after = store.count().await.unwrap();
             let expected = store.read(actual.id()).await.unwrap();
             assert_eq!(before + 1, after);
@@ -91,7 +90,7 @@ macro_rules! test_rest {
                 .put("/3")
                 .json(expected.inner())
                 .await
-                .json::<WithId<Todo>>();
+                .json::<WithId<Todo, i64>>();
             let after = store.count().await.unwrap();
             let expected = store.read(actual.id()).await.unwrap();
             assert_eq!(before, after);
@@ -108,7 +107,7 @@ macro_rules! test_rest {
             let mut expected = store.read(3).await.unwrap();
             assert!(!expected.is_done());
             expected.mark_as_done();
-            let actual = server.put("/").json(&expected).await.json::<WithId<Todo>>();
+            let actual = server.put("/").json(&expected).await.json::<WithId<Todo, i64>>();
             let after = store.count().await.unwrap();
             let expected = store.read(actual.id()).await.unwrap();
             assert_eq!(before, after);
@@ -134,10 +133,7 @@ macro_rules! test_rest {
         async fn delete_not_found() {
             let store = get_store_with_sample_data().await.unwrap();
             let server = TestServer::new(store.clone().into_axum_router()).unwrap();
-            server
-                .delete("/23")
-                .await
-                .assert_status(StatusCode::NOT_FOUND);
+            server.delete("/23").await.assert_status(StatusCode::NOT_FOUND);
         }
 
         #[cfg_attr(not(feature = "integration_tests"), ignore)]

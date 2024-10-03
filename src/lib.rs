@@ -25,6 +25,6 @@ pub mod prelude {
     pub use super::traits::schema::Schema;
     pub use super::traits::sqlx::Bind;
     pub use super::traits::table::Table;
-    pub use super::with_id::WithId;
+    pub use super::with_id::{WithId};
     pub use miniorm_macros::Entity;
 }

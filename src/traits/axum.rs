@@ -18,13 +18,13 @@ pub trait IntoAxumRouter {
     ///
     /// - `GET /` will list all entities,
     ///   - expected request payload: none
-    ///   - returned response body: `Json<Vec<WithId<E>>>`
+    ///   - returned response body: `Json<Vec<WithId<E,i64>>>`
     /// - `POST /` will create a new entity,
     ///   - expected request payload: `Json<E>`
-    ///   - returned response body: `Json<WithId<E>>`
+    ///   - returned response body: `Json<WithId<E,i64>>`
     /// - `PUT /` will update an existing entity,
-    ///   - expected request payload: `Json<WithId<E>>`
-    ///   - returned response body: `Json<WithId<E>>`
+    ///   - expected request payload: `Json<WithId<E,i64>>`
+    ///   - returned response body: `Json<WithId<E,i64>>`
     /// - `DELETE /` will delete all entities
     ///   - expected request payload: none
     ///   - returned response body: none
@@ -33,7 +33,7 @@ pub trait IntoAxumRouter {
     ///   - returned response body: `Json<E>`
     /// - `PUT /:id` to update one entity in the store
     ///   - expected request payload: `Json<E>`
-    ///   - returned response body: `Json<WithId<E>>`
+    ///   - returned response body: `Json<WithId<E,i64>>`
     /// - `DELETE /:id` to delete one entity from the store
     ///   - expected request payload: none
     ///   - returned response body: none

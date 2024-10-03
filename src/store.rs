@@ -64,7 +64,7 @@ where
     for<'c> i64: Type<DB> + Decode<'c, DB> + Encode<'c, DB>,
     usize: ColumnIndex<<DB as sqlx::Database>::Row>,
 {
-    async fn create(&self, entity: E) -> sqlx::Result<WithId<E>> {
+    async fn create(&self, entity: E) -> sqlx::Result<WithId<E,i64>> {
         let (id,) = E::MINIORM_COLUMNS
             .iter()
             .fold(sqlx::query_as(E::MINIORM_CREATE), |query, col| {
@@ -91,7 +91,7 @@ mod mysql {
     where
         E: for<'r> FromRow<'r, MySqlRow> + Schema<MySql> + BindColumn<MySql> + Sync + Send,
     {
-        async fn create(&self, entity: E) -> sqlx::Result<WithId<E>> {
+        async fn create(&self, entity: E) -> sqlx::Result<WithId<E,i64>> {
             let res = E::MINIORM_COLUMNS
                 .iter()
                 .fold(sqlx::query(E::MINIORM_CREATE), |query, col| {
@@ -120,14 +120,14 @@ where
     for<'c> <DB as HasArguments<'c>>::Arguments: IntoArguments<'c, DB>,
     for<'c> i64: Type<DB> + Decode<'c, DB> + Encode<'c, DB>,
 {
-    async fn read(&self, id: i64) -> sqlx::Result<WithId<E>> {
+    async fn read(&self, id: i64) -> sqlx::Result<WithId<E,i64>> {
         sqlx::query_as(E::MINIORM_READ)
             .bind(id)
             .fetch_one(&self.db)
             .await
     }
 
-    async fn list(&self) -> sqlx::Result<Vec<WithId<E>>> {
+    async fn list(&self) -> sqlx::Result<Vec<WithId<E,i64>>> {
         sqlx::query_as(E::MINIORM_LIST).fetch_all(&self.db).await
     }
 
@@ -155,7 +155,7 @@ where
     for<'c> i64: Type<DB> + Decode<'c, DB> + Encode<'c, DB>,
     usize: ColumnIndex<<DB as sqlx::Database>::Row>,
 {
-    async fn update(&self, entity: WithId<E>) -> sqlx::Result<WithId<E>> {
+    async fn update(&self, entity: WithId<E,i64>) -> sqlx::Result<WithId<E, i64>> {
         E::MINIORM_COLUMNS
             .iter()
             .fold(sqlx::query(E::MINIORM_UPDATE), |query, col| {

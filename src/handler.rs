@@ -38,17 +38,10 @@ where
         State(store): State<S>,
         Json(payload): Json<E>,
     ) -> Result<impl IntoResponse, StatusCode> {
-        store
-            .create(payload)
-            .await
-            .map_err(Self::to_status_code)
-            .map(Json)
+        store.create(payload).await.map_err(Self::to_status_code).map(Json)
     }
 
-    pub(crate) async fn read(
-        Path(id): Path<i64>,
-        State(store): State<S>,
-    ) -> Result<impl IntoResponse, StatusCode> {
+    pub(crate) async fn read(Path(id): Path<i64>, State(store): State<S>) -> Result<impl IntoResponse, StatusCode> {
         store.read(id).await.map_err(Self::to_status_code).map(Json)
     }
 
@@ -62,39 +55,22 @@ where
         Json(payload): Json<E>,
     ) -> Result<impl IntoResponse, StatusCode> {
         let payload = WithId::new(payload, id);
-        store
-            .update(payload)
-            .await
-            .map_err(Self::to_status_code)
-            .map(Json)
+        store.update(payload).await.map_err(Self::to_status_code).map(Json)
     }
 
     pub(crate) async fn update_with_id(
         State(store): State<S>,
-        Json(payload): Json<WithId<E>>,
+        Json(payload): Json<WithId<E, i64>>,
     ) -> Result<impl IntoResponse, StatusCode> {
-        store
-            .update(payload)
-            .await
-            .map_err(Self::to_status_code)
-            .map(Json)
+        store.update(payload).await.map_err(Self::to_status_code).map(Json)
     }
 
-    pub(crate) async fn delete(
-        Path(id): Path<i64>,
-        State(store): State<S>,
-    ) -> Result<impl IntoResponse, StatusCode> {
+    pub(crate) async fn delete(Path(id): Path<i64>, State(store): State<S>) -> Result<impl IntoResponse, StatusCode> {
         store.delete(id).await.map_err(Self::to_status_code)
     }
 
-    pub(crate) async fn delete_all(
-        State(store): State<S>,
-    ) -> Result<impl IntoResponse, StatusCode> {
-        store
-            .delete_all()
-            .await
-            .map_err(Self::to_status_code)
-            .map(|_| ())
+    pub(crate) async fn delete_all(State(store): State<S>) -> Result<impl IntoResponse, StatusCode> {
+        store.delete_all().await.map_err(Self::to_status_code).map(|_| ())
     }
 
     pub(crate) fn into_axum_router<R>(self) -> Router<R> {
