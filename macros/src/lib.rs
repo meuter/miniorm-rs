@@ -1,8 +1,4 @@
-#![warn(
-    missing_docs,
-    rustdoc::missing_crate_level_docs,
-    rustdoc::broken_intra_doc_links
-)]
+#![warn(missing_docs, rustdoc::missing_crate_level_docs, rustdoc::broken_intra_doc_links)]
 //! Helper crate for `miniorm` providing a device macro to easily
 //! implement the `Schema` and `Bind` trait.
 mod column;
@@ -99,7 +95,7 @@ use syn::DeriveInput;
 /// }
 /// ```
 ///
-#[proc_macro_derive(Entity, attributes(sqlx, column, postgres, sqlite, mysql))]
+#[proc_macro_derive(Entity, attributes(sqlx, miniorm, column, postgres, sqlite, mysql))]
 pub fn derive_entity(input: TokenStream) -> TokenStream {
     let input: DeriveInput = syn::parse(input).unwrap();
     let args = SchemaArgs::from_derive_input(&input).expect("could not parse args");

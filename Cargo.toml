@@ -16,18 +16,20 @@ axum = { version = "0.7.5", optional = true }
 miniorm-macros = { version = "0.4.1", path = "macros" }
 serde = { version = "1.0.197", optional = true }
 sqlx = { version = "0.7.4" }
+uuid = { version = "1.10.0", optional = true }
 
 [workspace]
 members = ["macros"]
 
 [features]
 default = ["postgres"]
-full = ["postgres", "sqlite", "mysql", "axum"]
+full = ["postgres", "sqlite", "mysql", "axum", "uuid"]
 serde = ["dep:serde"]
 axum = ["dep:axum", "serde"]
 postgres = ["sqlx/postgres"]
 sqlite = ["sqlx/sqlite"]
 mysql = ["sqlx/mysql"]
+uuid = ["sqlx/uuid", "uuid/v4"]
 integration_tests = []
 
 [dev-dependencies]

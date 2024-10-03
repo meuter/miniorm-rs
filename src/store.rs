@@ -25,12 +25,28 @@ pub struct Store<DB: Database, E, I> {
     id: PhantomData<I>,
 }
 
-impl<DB: Database, E, I> Store<DB, E, I> {
+impl<DB: Database, E> Store<DB, E, i64> {
     /// Create a new [`Store`]
     pub fn new(db: Pool<DB>) -> Self {
         let entity = PhantomData;
         let id = PhantomData;
         Self { db, entity, id }
+    }
+}
+
+#[cfg(feature = "uuid")]
+mod uuid {
+    use super::{Database, Store};
+    use sqlx::{types::Uuid, Pool};
+    use std::marker::PhantomData;
+
+    impl<DB: Database, E> Store<DB, E, Uuid> {
+        /// Create a new [`Store`] where the id are UUID
+        pub fn new_with_uuid(db: Pool<DB>) -> Self {
+            let entity = PhantomData;
+            let id = PhantomData;
+            Self { db, entity, id }
+        }
     }
 }
 
@@ -111,7 +127,7 @@ mod mysql {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[async_trait]
-impl<DB, E> Read<E, i64> for Store<DB, E, i64>
+impl<DB, E, I> Read<E, I> for Store<DB, E, I>
 where
     DB: Database,
     E: Unpin + Send + Sync + Send,
@@ -119,13 +135,14 @@ where
     for<'c> &'c str: ColumnIndex<<DB as Database>::Row>,
     for<'c> &'c mut <DB as sqlx::Database>::Connection: Executor<'c, Database = DB>,
     for<'c> <DB as HasArguments<'c>>::Arguments: IntoArguments<'c, DB>,
-    for<'c> i64: Type<DB> + Decode<'c, DB> + Encode<'c, DB>,
+    for<'c> I: Type<DB> + Decode<'c, DB> + Encode<'c, DB> + Send + Sync + Unpin,
+    for<'c> i64: Type<DB> + Decode<'c, DB>,
 {
-    async fn read(&self, id: i64) -> sqlx::Result<WithId<E, i64>> {
+    async fn read(&self, id: I) -> sqlx::Result<WithId<E, I>> {
         sqlx::query_as(E::MINIORM_READ).bind(id).fetch_one(&self.db).await
     }
 
-    async fn list(&self) -> sqlx::Result<Vec<WithId<E, i64>>> {
+    async fn list(&self) -> sqlx::Result<Vec<WithId<E, I>>> {
         sqlx::query_as(E::MINIORM_LIST).fetch_all(&self.db).await
     }
 
@@ -144,7 +161,7 @@ where
 /// Update
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 #[async_trait]
-impl<DB, E> Update<E, i64> for Store<DB, E, i64>
+impl<DB, E, I> Update<E, I> for Store<DB, E, I>
 where
     DB: Database,
     for<'c> &'c mut <DB as sqlx::Database>::Connection: Executor<'c, Database = DB>,
@@ -152,14 +169,15 @@ where
     E: for<'r> FromRow<'r, <DB as Database>::Row> + Schema<DB> + BindColumn<DB> + Sync + Send,
     for<'c> i64: Type<DB> + Decode<'c, DB> + Encode<'c, DB>,
     usize: ColumnIndex<<DB as sqlx::Database>::Row>,
+    for<'c> I: Type<DB> + Decode<'c, DB> + Encode<'c, DB> + Sync + Send,
 {
-    async fn update(&self, entity: WithId<E, i64>) -> sqlx::Result<WithId<E, i64>> {
+    async fn update(&self, entity: WithId<E, I>) -> sqlx::Result<WithId<E, I>> {
         E::MINIORM_COLUMNS
             .iter()
             .fold(sqlx::query(E::MINIORM_UPDATE), |query, col| {
                 entity.bind_column(query, col)
             })
-            .bind(entity.id())
+            .bind(entity.id_ref())
             .execute(&self.db)
             .await?;
         Ok(entity)
@@ -171,16 +189,16 @@ where
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[async_trait]
-impl<DB, E> Delete<E> for Store<DB, E, i64>
+impl<DB, E, I> Delete<E, I> for Store<DB, E, I>
 where
     DB: Database,
     E: Schema<DB> + Sync,
     <DB as Database>::QueryResult: RowsAffected,
     for<'c> &'c mut <DB as sqlx::Database>::Connection: Executor<'c, Database = DB>,
     for<'c> <DB as HasArguments<'c>>::Arguments: IntoArguments<'c, DB>,
-    for<'c> i64: Type<DB> + Encode<'c, DB>,
+    for<'c> I: Type<DB> + Encode<'c, DB> + Send + Sync,
 {
-    async fn delete(&self, id: i64) -> sqlx::Result<()> {
+    async fn delete(&self, id: I) -> sqlx::Result<()> {
         let res = sqlx::query(E::MINIORM_DELETE).bind(id).execute(&self.db).await?;
         if res.rows_affected() == 0 {
             Err(sqlx::Error::RowNotFound)

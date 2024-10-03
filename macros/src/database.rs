@@ -16,12 +16,20 @@ impl Database {
         quote!(sqlx::#ident)
     }
 
-    pub fn id_declaration(&self) -> &str {
+    pub fn id_declaration(&self, uuid: bool) -> &str {
         use Database::*;
-        match self {
-            Postgres => "id BIGSERIAL PRIMARY KEY",
-            Sqlite => "id INTEGER PRIMARY KEY AUTOINCREMENT",
-            MySql => "id INT AUTO_INCREMENT NOT NULL PRIMARY KEY",
+        if uuid {
+            match self {
+                Sqlite => panic!("uuid is not supported yet for sqlite"),
+                Postgres => "id uuid DEFAULT gen_random_uuid()",
+                MySql => panic!("uuid is not supported yet for mysql"),
+            }
+        } else {
+            match self {
+                Postgres => "id BIGSERIAL PRIMARY KEY",
+                Sqlite => "id INTEGER PRIMARY KEY AUTOINCREMENT",
+                MySql => "id INT AUTO_INCREMENT NOT NULL PRIMARY KEY",
+            }
         }
     }
 

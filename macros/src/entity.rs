@@ -6,11 +6,13 @@ use syn::Ident;
 use crate::{column::Column, database::Database};
 
 #[derive(FromDeriveInput)]
-#[darling(attributes(sqlx), supports(struct_named))]
+#[darling(attributes(sqlx, miniorm), supports(struct_named))]
 pub struct SchemaArgs {
     ident: Ident,
     rename: Option<String>,
     data: Data<(), Column>,
+    #[darling(default)]
+    uuid: bool,
 }
 
 impl SchemaArgs {
@@ -36,7 +38,7 @@ impl SchemaArgs {
 
         // Table
         let create_table = {
-            let id_declaration = db.id_declaration();
+            let id_declaration = db.id_declaration(self.uuid);
             let col_declarations = self
                 .columns()
                 .map(|col| format!("{} {}", col.name(), col.schema_for_db(db)))
@@ -60,10 +62,7 @@ impl SchemaArgs {
         };
 
         // Read
-        let read = format!(
-            "SELECT {cols}, id FROM {table} WHERE id={}",
-            db.placeholder(1)
-        );
+        let read = format!("SELECT {cols}, id FROM {table} WHERE id={}", db.placeholder(1));
         let list = format!("SELECT {cols}, id FROM {table} ORDER BY id");
         let count = format!("SELECT COUNT(id) AS count FROM {table}");
 

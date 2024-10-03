@@ -1,8 +1,4 @@
-#![warn(
-    missing_docs,
-    rustdoc::missing_crate_level_docs,
-    rustdoc::broken_intra_doc_links
-)]
+#![warn(missing_docs, rustdoc::missing_crate_level_docs, rustdoc::broken_intra_doc_links)]
 #![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/README.md"))]
 
 #[cfg(feature = "axum")]
@@ -25,6 +21,6 @@ pub mod prelude {
     pub use super::traits::schema::Schema;
     pub use super::traits::sqlx::Bind;
     pub use super::traits::table::Table;
-    pub use super::with_id::{WithId};
+    pub use super::with_id::WithId;
     pub use miniorm_macros::Entity;
 }
