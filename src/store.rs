@@ -19,16 +19,18 @@ use std::marker::PhantomData;
 ///
 /// Note that both can be derived automatically; [FromRow] using sqlx
 /// and [Schema] using this crate.
-pub struct Store<DB: Database, E> {
+pub struct Store<DB: Database, E, I> {
     db: Pool<DB>,
     entity: PhantomData<E>,
+    id: PhantomData<I>,
 }
 
-impl<DB: Database, E> Store<DB, E> {
+impl<DB: Database, E, I> Store<DB, E, I> {
     /// Create a new [`Store`]
     pub fn new(db: Pool<DB>) -> Self {
         let entity = PhantomData;
-        Self { db, entity }
+        let id = PhantomData;
+        Self { db, entity, id }
     }
 }
 
@@ -36,7 +38,7 @@ impl<DB: Database, E> Store<DB, E> {
 /// Table
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 #[async_trait]
-impl<DB: Database, E: Sync + Schema<DB>> Table<DB> for Store<DB, E>
+impl<DB: Database, E: Sync + Schema<DB>, I: Sync> Table<DB> for Store<DB, E, I>
 where
     for<'c> &'c mut <DB as sqlx::Database>::Connection: Executor<'c, Database = DB>,
     for<'c> <DB as HasArguments<'c>>::Arguments: IntoArguments<'c, DB>,
@@ -54,16 +56,16 @@ where
 /// Create
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 #[async_trait]
-impl<DB, E> Create<E, i64> for Store<DB, E>
+impl<DB, E, I> Create<E, I> for Store<DB, E, I>
 where
     DB: Database + SupportsReturning,
     E: for<'r> FromRow<'r, <DB as Database>::Row> + Schema<DB> + BindColumn<DB> + Sync + Send,
     for<'c> &'c mut <DB as sqlx::Database>::Connection: Executor<'c, Database = DB>,
     for<'c> <DB as HasArguments<'c>>::Arguments: IntoArguments<'c, DB>,
-    for<'c> i64: Type<DB> + Decode<'c, DB> + Encode<'c, DB>,
+    for<'c> I: Type<DB> + Decode<'c, DB> + Encode<'c, DB> + Sync + Send + Unpin,
     usize: ColumnIndex<<DB as sqlx::Database>::Row>,
 {
-    async fn create(&self, entity: E) -> sqlx::Result<WithId<E, i64>> {
+    async fn create(&self, entity: E) -> sqlx::Result<WithId<E, I>> {
         let (id,) = E::MINIORM_COLUMNS
             .iter()
             .fold(sqlx::query_as(E::MINIORM_CREATE), |query, col| {
@@ -86,7 +88,7 @@ mod mysql {
     };
 
     #[async_trait]
-    impl<E> Create<E, i64> for Store<MySql, E>
+    impl<E> Create<E, i64> for Store<MySql, E, i64>
     where
         E: for<'r> FromRow<'r, MySqlRow> + Schema<MySql> + BindColumn<MySql> + Sync + Send,
     {
@@ -109,7 +111,7 @@ mod mysql {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[async_trait]
-impl<DB, E> Read<E, i64> for Store<DB, E>
+impl<DB, E> Read<E, i64> for Store<DB, E, i64>
 where
     DB: Database,
     E: Unpin + Send + Sync + Send,
@@ -142,7 +144,7 @@ where
 /// Update
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 #[async_trait]
-impl<DB, E> Update<E, i64> for Store<DB, E>
+impl<DB, E> Update<E, i64> for Store<DB, E, i64>
 where
     DB: Database,
     for<'c> &'c mut <DB as sqlx::Database>::Connection: Executor<'c, Database = DB>,
@@ -169,7 +171,7 @@ where
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[async_trait]
-impl<DB, E> Delete<E> for Store<DB, E>
+impl<DB, E> Delete<E> for Store<DB, E, i64>
 where
     DB: Database,
     E: Schema<DB> + Sync,
@@ -194,23 +196,24 @@ where
 }
 
 #[cfg(feature = "axum")]
-impl<DB: Database, E> crate::traits::axum::IntoAxumRouter for Store<DB, E>
+impl<DB: Database, E> crate::traits::axum::IntoAxumRouter for Store<DB, E, i64>
 where
     E: Schema<DB> + for<'r> FromRow<'r, <DB as Database>::Row> + crate::traits::bind_col::BindColumn<DB>,
     E: serde::Serialize + for<'de> serde::Deserialize<'de>,
     E: Clone + Sync + Send + Unpin + 'static,
-    Store<DB, E>: crate::traits::crud::Crud<E, i64> + Clone,
+    Store<DB, E, i64>: crate::traits::crud::Crud<E, i64> + Clone,
 {
     fn into_axum_router<S>(self) -> axum::Router<S> {
         crate::handler::Handler::new(self).into_axum_router()
     }
 }
 
-impl<DB: Database, E> Clone for Store<DB, E> {
+impl<DB: Database, E, I> Clone for Store<DB, E, I> {
     fn clone(&self) -> Self {
         Self {
             db: self.db.clone(),
             entity: self.entity,
+            id: self.id,
         }
     }
 }

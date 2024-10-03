@@ -1,6 +1,6 @@
 use miniorm::prelude::*;
 use serde::{Deserialize, Serialize};
-use sqlx::{prelude::Type, FromRow, MySql};
+use sqlx::{prelude::Type, FromRow};
 use std::string::ToString;
 
 #[derive(Debug, Clone, Eq, PartialEq, Type, Serialize, Deserialize)]
@@ -31,7 +31,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("== MYSQL ==");
     let url = std::env::var("MYSQL_URL").expect("MYSQL_URL env variable not set");
     let db = sqlx::MySqlPool::connect(&url).await?;
-    let store: Store<MySql, Pokemon> = miniorm::Store::new(db);
+    let store = miniorm::Store::new(db);
 
     let pikatchu = Pokemon {
         name: "Pikatchu".to_string(),
@@ -62,10 +62,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     store.delete(pikatchu.id()).await?;
 
     println!("Checking delete successful");
-    assert!(matches!(
-        store.read(pikatchu.id()).await,
-        Err(sqlx::Error::RowNotFound)
-    ));
+    assert!(matches!(store.read(pikatchu.id()).await, Err(sqlx::Error::RowNotFound)));
 
     Ok(())
 }
