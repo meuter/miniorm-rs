@@ -4,19 +4,19 @@ use crate::WithId;
 
 /// \[C\]reate CRUD operation
 #[async_trait]
-pub trait Create<E> {
+pub trait Create<E, I> {
     /// Create an object in the database and returns its `id`.
-    async fn create(&self, entity: E) -> sqlx::Result<WithId<E, i64>>;
+    async fn create(&self, entity: E) -> sqlx::Result<WithId<E, I>>;
 }
 
 /// \[R\]ead CRUD operation
 #[async_trait]
-pub trait Read<E> {
+pub trait Read<E, I> {
     /// Reads and returns an object from the database
-    async fn read(&self, id: i64) -> sqlx::Result<WithId<E, i64>>;
+    async fn read(&self, id: i64) -> sqlx::Result<WithId<E, I>>;
 
     /// Lists and return all object from the database
-    async fn list(&self) -> sqlx::Result<Vec<WithId<E, i64>>>;
+    async fn list(&self) -> sqlx::Result<Vec<WithId<E, I>>>;
 
     /// Count and return the number of object in the database
     async fn count(&self) -> sqlx::Result<u64>;
@@ -24,9 +24,9 @@ pub trait Read<E> {
 
 /// \[U\]pdate CRUD operation
 #[async_trait]
-pub trait Update<E> {
+pub trait Update<E, I> {
     /// Update an object in the database and returns its `id`.
-    async fn update(&self, entity: WithId<E, i64>) -> sqlx::Result<WithId<E, i64>>;
+    async fn update(&self, entity: WithId<E, I>) -> sqlx::Result<WithId<E, I>>;
 }
 
 /// \[D\]elete CRUD operation
@@ -41,6 +41,6 @@ pub trait Delete<E> {
 
 /// CRUD operations
 #[async_trait]
-pub trait Crud<E>: Create<E> + Read<E> + Update<E> + Delete<E> {}
+pub trait Crud<E, I>: Create<E, I> + Read<E, I> + Update<E, I> + Delete<E> {}
 
-impl<S, E> Crud<E> for S where S: Create<E> + Read<E> + Update<E> + Delete<E> {}
+impl<S, E, I> Crud<E, I> for S where S: Create<E, I> + Read<E, I> + Update<E, I> + Delete<E> {}

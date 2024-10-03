@@ -5,8 +5,7 @@ use crate::{
 };
 use async_trait::async_trait;
 use sqlx::{
-    database::HasArguments, ColumnIndex, Database, Decode, Encode, Executor, FromRow,
-    IntoArguments, Pool, Type,
+    database::HasArguments, ColumnIndex, Database, Decode, Encode, Executor, FromRow, IntoArguments, Pool, Type,
 };
 use std::marker::PhantomData;
 
@@ -55,7 +54,7 @@ where
 /// Create
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 #[async_trait]
-impl<DB, E> Create<E> for Store<DB, E>
+impl<DB, E> Create<E, i64> for Store<DB, E>
 where
     DB: Database + SupportsReturning,
     E: for<'r> FromRow<'r, <DB as Database>::Row> + Schema<DB> + BindColumn<DB> + Sync + Send,
@@ -64,7 +63,7 @@ where
     for<'c> i64: Type<DB> + Decode<'c, DB> + Encode<'c, DB>,
     usize: ColumnIndex<<DB as sqlx::Database>::Row>,
 {
-    async fn create(&self, entity: E) -> sqlx::Result<WithId<E,i64>> {
+    async fn create(&self, entity: E) -> sqlx::Result<WithId<E, i64>> {
         let (id,) = E::MINIORM_COLUMNS
             .iter()
             .fold(sqlx::query_as(E::MINIORM_CREATE), |query, col| {
@@ -87,11 +86,11 @@ mod mysql {
     };
 
     #[async_trait]
-    impl<E> Create<E> for Store<MySql, E>
+    impl<E> Create<E, i64> for Store<MySql, E>
     where
         E: for<'r> FromRow<'r, MySqlRow> + Schema<MySql> + BindColumn<MySql> + Sync + Send,
     {
-        async fn create(&self, entity: E) -> sqlx::Result<WithId<E,i64>> {
+        async fn create(&self, entity: E) -> sqlx::Result<WithId<E, i64>> {
             let res = E::MINIORM_COLUMNS
                 .iter()
                 .fold(sqlx::query(E::MINIORM_CREATE), |query, col| {
@@ -110,7 +109,7 @@ mod mysql {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[async_trait]
-impl<DB, E> Read<E> for Store<DB, E>
+impl<DB, E> Read<E, i64> for Store<DB, E>
 where
     DB: Database,
     E: Unpin + Send + Sync + Send,
@@ -120,14 +119,11 @@ where
     for<'c> <DB as HasArguments<'c>>::Arguments: IntoArguments<'c, DB>,
     for<'c> i64: Type<DB> + Decode<'c, DB> + Encode<'c, DB>,
 {
-    async fn read(&self, id: i64) -> sqlx::Result<WithId<E,i64>> {
-        sqlx::query_as(E::MINIORM_READ)
-            .bind(id)
-            .fetch_one(&self.db)
-            .await
+    async fn read(&self, id: i64) -> sqlx::Result<WithId<E, i64>> {
+        sqlx::query_as(E::MINIORM_READ).bind(id).fetch_one(&self.db).await
     }
 
-    async fn list(&self) -> sqlx::Result<Vec<WithId<E,i64>>> {
+    async fn list(&self) -> sqlx::Result<Vec<WithId<E, i64>>> {
         sqlx::query_as(E::MINIORM_LIST).fetch_all(&self.db).await
     }
 
@@ -146,7 +142,7 @@ where
 /// Update
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 #[async_trait]
-impl<DB, E> Update<E> for Store<DB, E>
+impl<DB, E> Update<E, i64> for Store<DB, E>
 where
     DB: Database,
     for<'c> &'c mut <DB as sqlx::Database>::Connection: Executor<'c, Database = DB>,
@@ -155,7 +151,7 @@ where
     for<'c> i64: Type<DB> + Decode<'c, DB> + Encode<'c, DB>,
     usize: ColumnIndex<<DB as sqlx::Database>::Row>,
 {
-    async fn update(&self, entity: WithId<E,i64>) -> sqlx::Result<WithId<E, i64>> {
+    async fn update(&self, entity: WithId<E, i64>) -> sqlx::Result<WithId<E, i64>> {
         E::MINIORM_COLUMNS
             .iter()
             .fold(sqlx::query(E::MINIORM_UPDATE), |query, col| {
@@ -183,10 +179,7 @@ where
     for<'c> i64: Type<DB> + Encode<'c, DB>,
 {
     async fn delete(&self, id: i64) -> sqlx::Result<()> {
-        let res = sqlx::query(E::MINIORM_DELETE)
-            .bind(id)
-            .execute(&self.db)
-            .await?;
+        let res = sqlx::query(E::MINIORM_DELETE).bind(id).execute(&self.db).await?;
         if res.rows_affected() == 0 {
             Err(sqlx::Error::RowNotFound)
         } else {
@@ -203,12 +196,10 @@ where
 #[cfg(feature = "axum")]
 impl<DB: Database, E> crate::traits::axum::IntoAxumRouter for Store<DB, E>
 where
-    E: Schema<DB>
-        + for<'r> FromRow<'r, <DB as Database>::Row>
-        + crate::traits::bind_col::BindColumn<DB>,
+    E: Schema<DB> + for<'r> FromRow<'r, <DB as Database>::Row> + crate::traits::bind_col::BindColumn<DB>,
     E: serde::Serialize + for<'de> serde::Deserialize<'de>,
     E: Clone + Sync + Send + Unpin + 'static,
-    Store<DB, E>: crate::traits::crud::Crud<E> + Clone,
+    Store<DB, E>: crate::traits::crud::Crud<E, i64> + Clone,
 {
     fn into_axum_router<S>(self) -> axum::Router<S> {
         crate::handler::Handler::new(self).into_axum_router()

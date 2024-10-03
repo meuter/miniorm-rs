@@ -10,7 +10,7 @@ use std::error::Error;
 #[macro_export]
 macro_rules! test_rest {
     ($db: block) => {
-        async fn get_store_with_sample_data() -> Result<impl Clone + Crud<Todo> + IntoAxumRouter, Box<dyn Error>> {
+        async fn get_store_with_sample_data() -> Result<impl Clone + Crud<Todo, i64> + IntoAxumRouter, Box<dyn Error>> {
             let pool = $db;
             let store = Store::new(pool);
             store.recreate_table().await?;

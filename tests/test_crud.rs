@@ -8,7 +8,7 @@ use std::error::Error;
 #[macro_export]
 macro_rules! test_crud {
     ($db: block) => {
-        async fn get_clean_store() -> Result<impl Crud<Todo>, Box<dyn Error>> {
+        async fn get_clean_store() -> Result<impl Crud<Todo, i64>, Box<dyn Error>> {
             let pool = $db;
             let store = Store::new(pool);
             store.recreate_table().await?;

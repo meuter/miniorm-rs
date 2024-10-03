@@ -23,7 +23,7 @@ impl<E, S> Handler<E, S> {
 
 impl<E, S> Handler<E, S>
 where
-    S: Crud<E> + Sync + Send + Clone + 'static,
+    S: Crud<E, i64> + Sync + Send + Clone + 'static,
     E: Send + 'static,
     E: Serialize + for<'de> Deserialize<'de>,
 {
