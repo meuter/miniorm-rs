@@ -6,12 +6,6 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  uuid:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Todo (Sqlite)
-        run: cargo run --example uuid
   todos:
     runs-on: ubuntu-latest
     steps:
@@ -37,6 +31,16 @@ jobs:
       - name: Pokemon (MySql)
         run: cargo run --example pokemon
       - name: Stop MySql sandbox
+        run: docker compose down
+  uuid:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Start Postgres sandbox
+        run: docker compose up postgres -d
+      - name: Uuid (Postgres)
+        run: cargo run --example uuid
+      - name: Stop Postgres sandbox
         run: docker compose down
 
 
