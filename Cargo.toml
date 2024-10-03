@@ -1,6 +1,6 @@
 [package]
 name = "miniorm"
-version = "0.4.0"
+version = "0.4.1"
 edition = "2021"
 authors = ["Cédric Meuter <cedric.meuter@gmail.com>"]
 description = "a *very* simple ORM built on top of sqlx"
@@ -13,7 +13,7 @@ repository = "https://github.com/meuter/miniorm-rs"
 [dependencies]
 async-trait = "0.1.79"
 axum = { version = "0.7.5", optional = true }
-miniorm-macros = { version = "0.4.0", path = "macros" }
+miniorm-macros = { version = "0.4.1", path = "macros" }
 serde = { version = "1.0.197", optional = true }
 sqlx = { version = "0.7.4" }
 
